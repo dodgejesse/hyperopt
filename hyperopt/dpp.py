@@ -224,6 +224,7 @@ class AnnealingAlgo(SuggestAlgo):
         Returns: a list with one value in it: the suggested value for this
         hyperparameter
         """
+        import pdb; pdb.set_trace()    
         if log_scale:
             val = np.log(val)
         high = memo[node.arg['high']]
@@ -351,21 +352,25 @@ class AnnealingAlgo(SuggestAlgo):
             rng=self.rng,
             size=memo[node.arg['size']])
 
-def increment_node(root):
-    
 
-def eval_node(root):
-    for i in len(root.pos_args):
-        
-        
-
-def discritize_space(domain):
-    root = domain.expr
-    eval_node(root) 
+def get_num_quantiles(node):
+    if node.name == 'literal':
+        return 1
+    elif node.name == 'pos_args':
+        n_q = 1
+        for element in node.pos_args:
+            n_q = n_q * get_num_quantiles(element)
+        return n_q
+    elif node.name == 'float':
+         dist = node.pos_args[0].pos_args[1].name
+         
 
 def suggest(new_ids, domain, trials, seed, *args, **kwargs):
-    
-    discritized_space = discritize_space(domain)
+    #import pdb; pdb.set_trace()
+    from discretize_space import Discretizer
+    discretizer = Discretizer()
+    d_space = discretizer.discretize_space(domain)
+    #discritized_space = discritize_space(domain)
     
     apply_s_idxs_vals = pyll.as_apply(domain.s_idxs_vals)
     dfs_apply_s_idxs_vals= pyll.dfs(apply_s_idxs_vals)
@@ -374,7 +379,7 @@ def suggest(new_ids, domain, trials, seed, *args, **kwargs):
     for thing in todo:
         print thing
 
-    import pdb; pdb.set_trace()
+
 
     #eval_nodes(todo, memo)
     

@@ -192,6 +192,8 @@ class AnnealingAlgo(SuggestAlgo):
         else:
             loss, tid, val = self.choose_ltv(label)
             try:
+                #this gets the method that will be called.
+                #e.g. hp_quniform is the name of a method
                 handler = getattr(self, 'hp_%s' % node.name)
             except AttributeError:
                 raise NotImplementedError('Annealing', node.name)
@@ -220,6 +222,8 @@ class AnnealingAlgo(SuggestAlgo):
         Returns: a list with one value in it: the suggested value for this
         hyperparameter
         """
+        print("MADE IT HERE OMG HOW")
+        import pdb; pdb.set_trace()
         if log_scale:
             val = np.log(val)
         high = memo[node.arg['high']]
@@ -349,7 +353,16 @@ class AnnealingAlgo(SuggestAlgo):
 
 
 def suggest(new_ids, domain, trials, seed, *args, **kwargs):
+    #import pdb; pdb.set_trace()
     new_id, = new_ids
-    return AnnealingAlgo(domain, trials, seed, *args, **kwargs)(new_id)
+    print "new_ids: " + str(new_ids)
+    print "new_ID: " + str(new_id)
+    obj = AnnealingAlgo(domain, trials, seed, *args, **kwargs)
+    print "AnnealingAlgo(domain, trials, seed, *args, **kwargs):"
+    print obj
+    print "AnnealingAlgo(domain, trials, seed, *args, **kwargs)(new_id):"
+    to_return = obj(new_id)
+    print to_return
+    return to_return
 
 # -- flake-8 abhors blank line EOF

@@ -370,6 +370,12 @@ def suggest(new_ids, domain, trials, seed, *args, **kwargs):
     from discretize_space import Discretizer
     discretizer = Discretizer()
     d_space = discretizer.discretize_space(domain)
+    
+    from discretized_distance import Compute_Dist
+    distance_calc = Compute_Dist(domain.expr)
+    import dpp_sampler
+    L = dpp_sampler.build_similary_matrix(distance_calc.compute_distance, d_space)
+    distance_calc.compute_distances(d_space, domain.expr)
     #discritized_space = discritize_space(domain)
     
     apply_s_idxs_vals = pyll.as_apply(domain.s_idxs_vals)

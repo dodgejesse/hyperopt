@@ -2,7 +2,7 @@ import numpy as np
 import copy
 from none_storage import None_storage
 class Discretizer():
-    num_discrete_steps = 10.0
+    num_discrete_steps = 2.0
 
     def increment_uniform(self, node, hp_out, step_size=None):
         lower_bound = node.pos_args[0].pos_args[1].pos_args[0].obj
@@ -11,15 +11,25 @@ class Discretizer():
             return False, lower_bound
         if step_size is None:
             step_size = (upper_bound - lower_bound) / self.num_discrete_steps
+        #case where upper and lower bound are equal
+        if step_size == 0:
+            return False, lower_bound
         assert lower_bound <= hp_out <= upper_bound
-        if hp_out + step_size >= upper_bound:
+        if hp_out + step_size > upper_bound:
             return False, lower_bound
         else:
             return True, hp_out + step_size
             
     def increment_quniform(self,node, hp_out):
-        return self.increment_uniform(node, hp_out, 
-                                      step_size=node.pos_args[0].pos_args[1].pos_args[2].obj)
+        step_size=node.pos_args[0].pos_args[1].pos_args[2].obj
+        lower_bound = node.pos_args[0].pos_args[1].pos_args[0].obj
+        upper_bound = node.pos_args[0].pos_args[1].pos_args[1].obj
+        distance = upper_bound-lower_bound
+        num_steps = distance/step_size
+        multiplier = max(1,int(num_steps/self.num_discrete_steps))
+        
+        return self.increment_uniform(node, hp_out, step_size*multiplier)
+                                      
 
     def increment_loguniform(self,node, hp_out):
         
@@ -94,6 +104,7 @@ class Discretizer():
                 elif not i == len(hp_out) - 1:
                     hp_out[i] = None
                     hp_out[i+1] = self.increment_node(node.pos_args[i+2], None)[1]
+                    return True, hp_out
         #did not successfully increment any node, so it should be reset
         return self.increment_switch(node, None)
 
@@ -107,19 +118,67 @@ class Discretizer():
         else:
             return self.increment_leaf(node, hp_out)
 
-    def discretize_space(self, domain):
+    def debug_remove_shit(self, root, max_index_to_keep=None):
+        for i in range(len(root.named_args[1][1].pos_args[1].named_args)):
+            cur_name = root.named_args[1][1].pos_args[1].named_args[i][0]
+            #print root.named_args[1][1].pos_args[1].named_args[i][1]
+            if max_index_to_keep is None:
+                print root.named_args[1][1].pos_args[1].named_args[i], i
+                set_to_keep = ['activation_fn_0','kernel_num_0']
+                if cur_name not in set_to_keep:
+                    root.named_args[1][1].pos_args[1].named_args[i] = None
+            elif i > max_index_to_keep:
+                root.named_args[1][1].pos_args[1].named_args[i] = None
+                
+        root.named_args[1][1].pos_args[1].named_args = [x for x in root.named_args[1][1].pos_args[1].named_args if x != None]
+
+
+
+    def discretize_space_debug(self, domain):
+        #current hparam setting
+        root = domain.expr
+        import pdb; pdb.set_trace()        
+        storage = []
+        for i in range(len(root.named_args[1][1].pos_args[1].named_args)):
+            storage.append(root.named_args[1][1].pos_args[1].named_args[i])
+            print root.named_args[1][1].pos_args[1].named_args[i]
+        for i in range(len(root.named_args[1][1].pos_args[1].named_args)):
+            self.debug_remove_shit(root,i)
+            hp_out_set = self.discretize_space(domain, False)
+            set_of_things_kept = ''
+            for j in range(i+1):
+                set_of_things_kept = set_of_things_kept + ', ' + root.named_args[1][1].pos_args[1].named_args[j][0]
+            print(set_of_things_kept + ': ' + str(len(hp_out_set)))
+            new_named_args = []
+            for j in range(len(storage)):
+                new_named_args.append(storage[j])
+            root.named_args[1][1].pos_args[1].named_args = new_named_args
+        import pdb; pdb.set_trace()        
+
+
+    def discretize_space(self, domain, print_10_k=True):
         #set of hparam settings
         hp_out_set = []
         #current hparam setting
         root = domain.expr
         
+        self.debug_remove_shit(root, 1)
+
+        
         incremented, new_values = self.increment_node(root,None)
         incremented = True
-        hp_out_set.append(copy.deepcopy(new_values))
+        #import pdb; pdb.set_trace()        
+
         while incremented:
-            incremented, new_values = self.increment_node(root, new_values)
             hp_out_set.append(copy.deepcopy(new_values))
-        import pdb; pdb.set_trace()
+            incremented, new_values = self.increment_node(root, new_values)
+                
+            if len(hp_out_set) % 10000 == 0 and print_10_k:
+                print("current size of set: " + str(len(hp_out_set)))
+                print(hp_out_set[len(hp_out_set)-1])
+        
+        import pdb; pdb.set_trace()        
+        return hp_out_set
 
 
 

@@ -7,3 +7,8 @@ class None_storage():
         return "None_object"
     def __repr__(self):
         return "None_object"
+    def __eq__(self, other):
+        return isinstance(other, None_storage)
+    def __ne__(self, other):
+        return not isinstance(other, None_storage)
+            

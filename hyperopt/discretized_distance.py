@@ -5,10 +5,33 @@ class Compute_Dist():
     def __init__(self, root):
         self.root = root
 
-    #def compute_distances(self, hp_out_set):
-        #import pdb; pdb.set_trace()
-        #tmp = self.compute_pair_distance(hp_out_set[0], hp_out_set[1], root)
+    #checks that L is only 0 on the diagonal, and 
+    # the max distance is between the first and last items
+    # perhaps all horizontal neighbors less than num_discrete_steps apart in L
+    # should be different, assuming only hparams are floats (not switches)
+    def check_distances_correct(self, L):
+        max_L = float('-inf')
+        max_L_index = []
+        min_L = float('inf')
+        min_L_index = []
+        for i in range(len(L)):
+            for j in range(len(L)):
+                if L[i, j] > max_L:
+                    max_L = L[i, j]
+                    max_L_index = [[i, j]]
+                elif L[i, j] == max_L:
+                    max_L_index.append([i, j])
+                if L[i, j] < min_L:
+                    min_L = L[i, j]
+                    min_L_index = [[i, j]]
+                elif L[i, j] == min_L:
+                    min_L_index.append([i, j])
+        print("min_L: ", min_L)
+        print("min_L_index: ", min_L_index)
+        print("max_L: ", max_L)
+        print("max_L_index: ", max_L_index)
         
+
     def compute_distance(self, first, second):
         return self.compute_pair_distance(first, second, self.root)
 
@@ -27,11 +50,7 @@ class Compute_Dist():
         elif node.name == 'pos_args':
             return self.pos_args_distance(first, second, node)
         else:
-            tmp = self.leaf_distance(first, second, node)
-            print 'leaf distance: ' + str(tmp)
-            print 'two things to compare: '
-            print first, second
-            return tmp
+            return self.leaf_distance(first, second, node)
 
     def dict_distance(self, first, second, node):
         cur_dist = 0

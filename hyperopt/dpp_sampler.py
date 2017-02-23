@@ -12,6 +12,37 @@ on  (Fast Determinantal Point Process Sampling with
      Application to Clustering, Byungkon Kang, NIPS 2013)
 """
 
+def build_norm_similary_matrix(cov_function, items):
+    """
+    same as build_similary_matrix, but keeps track of max and min
+    then normalizes elements of L to be in [-1,1]
+    """
+    max_L = float('-inf')
+    min_L = float('inf')
+    L = np.zeros((len(items), len(items)))
+    for i in range(len(items)):
+        for j in range(i, len(items)):
+            L[i, j] = cov_function(items[i], items[j])
+            L[j, i] = L[i, j]
+            if L[i, j] < min_L:
+                min_L = L[i, j]
+            if L[i, j] > max_L:
+                max_L = L[i, j]
+            
+            if (i*len(items) + j) % 1000 == 0:
+                tmp1 = i*len(items) + j
+                tmp2 = len(items)*len(items)
+                tmp3 = 100.0*tmp1/tmp2
+                print('finished iteration {} out of {} ({:.4} done). i={},j={}'.format(tmp1,
+                                                                            tmp2,
+                                                                                       tmp3,i,j))
+
+    for i in range(len(items)):
+        for j in range(len(items)):
+            L[i, j] = 2*(L[i, j]-min_L)/(max_L-min_L)-1
+    return L, max_L, min_L
+    
+
 def build_similary_matrix(cov_function, items):
     """
     build the similarity matrix from a covariance function
@@ -136,16 +167,20 @@ def test():
         #print(sample_k(x, L, 10))
         print(sample(x, L))
 
+def abs_dist():
+    def f(p1, p2):
+        return abs(max(p1,p2)-min(p1,p2))
+    return f
+
 def test_k_dpp(n, k):
+
     if n < k:
         return "n < k, which is bad"
-    x = np.arange(1, n)
-    L = build_similary_matrix(exp_quadratic(sigma=0.1),
-                              x)
-    for i in range(k):
-        #print(sample_k(x, L, 10))
-        print(sample_k(x, L, k))
-    
+    x = np.arange(0, 100)
+    L,max_L,min_L = build_norm_similary_matrix(abs_dist(),x)
+
+    import dpp
+    dpp.check_sampled_points_more_diverse(L,max_L, min_L, abs_dist(), x)
 
 
 if __name__ == "__main__":

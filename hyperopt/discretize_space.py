@@ -2,7 +2,7 @@ import numpy as np
 import copy
 from none_storage import None_storage
 class Discretizer():
-    num_discrete_steps = 2.0
+    num_discrete_steps = 4.0
 
     def increment_uniform(self, node, hp_out, step_size=None):
         lower_bound = node.pos_args[0].pos_args[1].pos_args[0].obj
@@ -118,22 +118,26 @@ class Discretizer():
         else:
             return self.increment_leaf(node, hp_out)
 
-    def debug_remove_shit(self, root, max_index_to_keep=None):
+    def debug_remove_shit(self, root, max_index_to_keep=None, type_to_keep=None):
         for i in range(len(root.named_args[1][1].pos_args[1].named_args)):
             cur_name = root.named_args[1][1].pos_args[1].named_args[i][0]
             #print root.named_args[1][1].pos_args[1].named_args[i][1]
-            if max_index_to_keep is None:
-                print root.named_args[1][1].pos_args[1].named_args[i], i
-                set_to_keep = ['activation_fn_0','kernel_num_0']
+            if max_index_to_keep is None and type_to_keep is None:
+                print [root.named_args[1][1].pos_args[1].named_args[i][0],
+                       root.named_args[1][1].pos_args[1].named_args[i][1].name], i
+                set_to_keep = ['batch_size_0', 'dropout_0', 'kernel_increment_0']
                 if cur_name not in set_to_keep:
                     root.named_args[1][1].pos_args[1].named_args[i] = None
-            elif i > max_index_to_keep:
+            elif max_index_to_keep is not None and i > max_index_to_keep:
                 root.named_args[1][1].pos_args[1].named_args[i] = None
-                
+            elif type_to_keep is not None:
+                if root.named_args[1][1].pos_args[1].named_args[i][1].name != type_to_keep:
+                    root.named_args[1][1].pos_args[1].named_args[i] = None
+
         root.named_args[1][1].pos_args[1].named_args = [x for x in root.named_args[1][1].pos_args[1].named_args if x != None]
 
 
-
+    #prints size of total space with only 1 hparam, 2 hparams, 3 hparams, etc.
     def discretize_space_debug(self, domain):
         #current hparam setting
         root = domain.expr
@@ -153,7 +157,7 @@ class Discretizer():
             for j in range(len(storage)):
                 new_named_args.append(storage[j])
             root.named_args[1][1].pos_args[1].named_args = new_named_args
-        import pdb; pdb.set_trace()        
+        import pdb; pdb.set_trace()
 
 
     def discretize_space(self, domain, print_10_k=True):
@@ -162,7 +166,7 @@ class Discretizer():
         #current hparam setting
         root = domain.expr
         
-        self.debug_remove_shit(root, 1)
+        self.debug_remove_shit(root)
 
         
         incremented, new_values = self.increment_node(root,None)

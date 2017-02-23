@@ -38,6 +38,12 @@ from .algobase import (
     SuggestAlgo,
     ExprEvaluator,
     )
+#mostly debugging:
+import dpp_sampler
+from discretize_space import Discretizer
+from discretized_distance import Compute_Dist
+import random
+
 
 logger = logging.getLogger(__name__)
 
@@ -363,19 +369,62 @@ def get_num_quantiles(node):
         return n_q
     elif node.name == 'float':
          dist = node.pos_args[0].pos_args[1].name
-         
+
+
+
+def avg_dist_of_set(sampled_items, distance_calc, max_L, min_L):
+    avg_dist = 0
+    counter = 0
+    for j in range(len(sampled_items)):
+        for k in range(j,len(sampled_items)):
+            if j == k:
+                continue
+            cur_dist = distance_calc(sampled_items[j], 
+                                                       sampled_items[k])
+            counter += 1
+            if max_L is not None and min_L is not None:
+                avg_dist += 2*(cur_dist-min_L)/(max_L-min_L)-1
+            else:
+                avg_dist += cur_dist
+            
+    return avg_dist / counter
+
+
+
+def check_sampled_points_more_diverse(L,max_L,min_L, distance_calc, d_space):
+    set_size = 5
+    dpp_avg = 0
+    rand_avg = 0
+    num_sets = 2500
+    for i in range(num_sets):
+        dpp_sampled_items = dpp_sampler.sample_k(d_space, L, set_size, max_nb_iterations = 10000)
+        cur_dpp_avg = avg_dist_of_set(dpp_sampled_items, distance_calc, max_L, min_L)
+        
+        dpp_avg = (dpp_avg * i + cur_dpp_avg)/(i+1)
+        
+        
+        rand_sampled_items = random.sample(d_space, set_size)
+        cur_rand_avg = avg_dist_of_set(rand_sampled_items, distance_calc, max_L, min_L)
+        rand_avg = (rand_avg * i + cur_rand_avg)/(i+1)
+        print('iter {}: {}, {}'.format(i,rand_avg, dpp_avg))
+        
+    print('dpp_avg: {}'.format(dpp_avg))
+    print('rand_avg: {}'.format(rand_avg))
+
 
 def suggest(new_ids, domain, trials, seed, *args, **kwargs):
     #import pdb; pdb.set_trace()
-    from discretize_space import Discretizer
+    
     discretizer = Discretizer()
     d_space = discretizer.discretize_space(domain)
     
-    from discretized_distance import Compute_Dist
+    
     distance_calc = Compute_Dist(domain.expr)
-    import dpp_sampler
-    L = dpp_sampler.build_similary_matrix(distance_calc.compute_distance, d_space)
-    distance_calc.compute_distances(d_space, domain.expr)
+    L,max_L,min_L = dpp_sampler.build_norm_similary_matrix(distance_calc.compute_distance, d_space)
+    check_sampled_points_more_diverse(L,max_L,min_L, distance_calc.compute_distance, d_space)
+    sampled_items = dpp_sampler.sample_k(d_space, L, 5)
+    
+    distance_calc.check_distances_correct(L)
     #discritized_space = discritize_space(domain)
     
     apply_s_idxs_vals = pyll.as_apply(domain.s_idxs_vals)
@@ -384,7 +433,7 @@ def suggest(new_ids, domain, trials, seed, *args, **kwargs):
     memo = {domain.s_new_ids: new_ids, domain.s_rng:seed}
     for thing in todo:
         print thing
-
+    
 
 
     #eval_nodes(todo, memo)

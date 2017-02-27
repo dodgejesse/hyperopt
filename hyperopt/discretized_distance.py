@@ -94,7 +94,7 @@ class Compute_Dist():
     def uniform_distance(self, first, second, node):
         lower_bound = node.pos_args[0].pos_args[1].pos_args[0].obj
         upper_bound = node.pos_args[0].pos_args[1].pos_args[1].obj
-        return 1.0*abs(max(first, second) - min(first, second))/abs(upper_bound - lower_bound)
+        return abs(1.0*max(first, second) - min(first, second))/abs(upper_bound - lower_bound)
         
     def loguniform_distance(self, first, second, node):
         return self.uniform_distance(np.log(first), np.log(second), node)

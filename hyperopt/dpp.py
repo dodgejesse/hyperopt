@@ -42,6 +42,7 @@ from .algobase import (
 import dpp_sampler
 from discretize_space import Discretizer
 from discretized_distance import Compute_Dist
+from hparam_as_vector import Make_Vector
 import random
 
 
@@ -391,8 +392,8 @@ def avg_dist_of_set(sampled_items, distance_calc, max_L, min_L):
 
 
 
-def check_sampled_points_more_diverse(L,max_L,min_L, distance_calc, d_space):
-    set_size = 5
+def check_sampled_points_more_diverse(L,max_L,min_L, distance_calc, d_space,k):
+    set_size = k
     dpp_avg = 0
     rand_avg = 0
     num_sets = 2500
@@ -418,10 +419,12 @@ def suggest(new_ids, domain, trials, seed, *args, **kwargs):
     discretizer = Discretizer()
     d_space = discretizer.discretize_space(domain)
     
-    
+    make_vect = Make_Vector(domain.expr)
+    vectors = make_vect.make_vectors(d_space)
     distance_calc = Compute_Dist(domain.expr)
     L,max_L,min_L = dpp_sampler.build_norm_similary_matrix(distance_calc.compute_distance, d_space)
-    check_sampled_points_more_diverse(L,max_L,min_L, distance_calc.compute_distance, d_space)
+    dpp_sampler.test_k_dpp(100,5)
+    check_sampled_points_more_diverse(L,max_L,min_L, distance_calc.compute_distance, d_space,5)
     sampled_items = dpp_sampler.sample_k(d_space, L, 5)
     
     distance_calc.check_distances_correct(L)
@@ -433,7 +436,7 @@ def suggest(new_ids, domain, trials, seed, *args, **kwargs):
     memo = {domain.s_new_ids: new_ids, domain.s_rng:seed}
     for thing in todo:
         print thing
-    
+
 
 
     #eval_nodes(todo, memo)

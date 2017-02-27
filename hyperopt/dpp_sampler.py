@@ -12,6 +12,13 @@ on  (Fast Determinantal Point Process Sampling with
      Application to Clustering, Byungkon Kang, NIPS 2013)
 """
 
+def build_sim_mtx_from_vectors(vectors):
+    L = np.zeros((len(vectors), len(vectors)))
+    for i in range(len(vectors)):
+        L[i] = np.asarray([np.inner(vectors[i], x) for x in vectors])
+    return L
+        
+
 def build_norm_similary_matrix(cov_function, items):
     """
     same as build_similary_matrix, but keeps track of max and min
@@ -119,7 +126,7 @@ def sample(items, L, max_nb_iterations=1000, rng=np.random):
     return np.array(items)[Y]
 
 
-def sample_k(items, L, k, max_nb_iterations=1000, rng=np.random):
+def sample_k(items, L, k, max_nb_iterations=1000, rng=np.random, test_mix=False):
     """
     Sample a list of k items from a DPP defined
     by the similarity matrix L. The algorithm
@@ -156,6 +163,8 @@ def sample_k(items, L, k, max_nb_iterations=1000, rng=np.random):
         if rng.uniform() <= p:
             X = Y[:]
             X[v] = True
+
+        import pdb; pdb.set_trace()
     return np.array(items)[X]
 
 
@@ -176,11 +185,11 @@ def test_k_dpp(n, k):
 
     if n < k:
         return "n < k, which is bad"
-    x = np.arange(0, 100)
+    x = np.arange(0, n)
     L,max_L,min_L = build_norm_similary_matrix(abs_dist(),x)
 
     import dpp
-    dpp.check_sampled_points_more_diverse(L,max_L, min_L, abs_dist(), x)
+    dpp.check_sampled_points_more_diverse(L,max_L, min_L, abs_dist(), x,k)
 
 
 if __name__ == "__main__":

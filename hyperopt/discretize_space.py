@@ -125,7 +125,7 @@ class Discretizer():
             if max_index_to_keep is None and type_to_keep is None:
                 print [root.named_args[1][1].pos_args[1].named_args[i][0],
                        root.named_args[1][1].pos_args[1].named_args[i][1].name], i
-                set_to_keep = ['batch_size_0', 'dropout_0', 'kernel_increment_0']
+                set_to_keep = ['activation_fn_0','batch_size_0', 'dropout_0', 'learning_rate_0']
                 if cur_name not in set_to_keep:
                     root.named_args[1][1].pos_args[1].named_args[i] = None
             elif max_index_to_keep is not None and i > max_index_to_keep:
@@ -165,13 +165,12 @@ class Discretizer():
         hp_out_set = []
         #current hparam setting
         root = domain.expr
-        
+        #import pdb; pdb.set_trace()        
         self.debug_remove_shit(root)
 
         
         incremented, new_values = self.increment_node(root,None)
         incremented = True
-        #import pdb; pdb.set_trace()        
 
         while incremented:
             hp_out_set.append(copy.deepcopy(new_values))

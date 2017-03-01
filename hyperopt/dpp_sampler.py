@@ -97,6 +97,9 @@ def sample(items, L, max_nb_iterations=1000, rng=np.random):
         b_u = b_u[:, u:u+1]
         if Y[u] == False:
             p_include_U = min(1, c_u - np.dot(np.dot(b_u.T, L_Y_inv), b_u))
+            if p_include_U > 0:
+                print "p_include_U: {}".format(p_include_U)
+
             if rng.uniform() <= p_include_U:
                 d_u = (c_u - np.dot(np.dot(b_u.T, L_Y_inv), b_u))
                 upleft = (L_Y_inv +
@@ -111,6 +114,8 @@ def sample(items, L, max_nb_iterations=1000, rng=np.random):
                 L_Y = L_Y[:, Y]
         else:
             p_remove_U = min(1, 1./(c_u - np.dot(np.dot(b_u.T, L_Y_inv), b_u)))
+            if p_remove_U > 0:
+                print "p_remove_U: {}".format(p_remove_U)
             if rng.uniform() <= p_remove_U:
                 l = L_Y_inv.shape[0] - 1
                 D = L_Y_inv[0:l, :]
@@ -160,6 +165,7 @@ def sample_k(items, L, k, max_nb_iterations=1000, rng=np.random, test_mix=False)
 
         p = min(1, c_v - np.dot(np.dot(b_v.T, L_Y_inv), b_v) /
                 (c_u - np.dot(np.dot(b_u.T, L_Y_inv.T), b_u)))
+        print p
         if rng.uniform() <= p:
             X = Y[:]
             X[v] = True

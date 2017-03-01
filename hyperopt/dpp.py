@@ -411,18 +411,31 @@ def check_sampled_points_more_diverse(L,max_L,min_L, distance_calc, d_space,k):
         
     print('dpp_avg: {}'.format(dpp_avg))
     print('rand_avg: {}'.format(rand_avg))
-
+def generate_L_from_vectors(vectors):
+    L = np.dot(vectors, np.transpose(vectors))
+    #somehow this seems to get rid of the machine precision errors from the above line
+    L_sym = (np.transpose(L)+L)*(1.0/2)
+    #this adds a eps*I to L anyway, just to make double sure it's psd
+    L_prime = L_sym + np.identity(len(L_sym))*(np.power(10.0,-14))
+    return L_prime
+    
+    
 
 def suggest(new_ids, domain, trials, seed, *args, **kwargs):
-    #import pdb; pdb.set_trace()
+    
     
     discretizer = Discretizer()
     d_space = discretizer.discretize_space(domain)
     
     make_vect = Make_Vector(domain.expr)
-    vectors = make_vect.make_vectors(d_space)
+    vectors = np.asarray(make_vect.make_vectors(d_space))
+    L = generate_L_from_vectors(vectors)
     distance_calc = Compute_Dist(domain.expr)
-    L,max_L,min_L = dpp_sampler.build_norm_similary_matrix(distance_calc.compute_distance, d_space)
+    import pdb; pdb.set_trace()
+    dpp_sampler.sample(d_space, L)
+    
+    check_sampled_points_more_diverse(L, None, None, distance_calc.compute_distance, d_space, 5)
+    #L,max_L,min_L = dpp_sampler.build_norm_similary_matrix(distance_calc.compute_distance, d_space)
     dpp_sampler.test_k_dpp(100,5)
     check_sampled_points_more_diverse(L,max_L,min_L, distance_calc.compute_distance, d_space,5)
     sampled_items = dpp_sampler.sample_k(d_space, L, 5)

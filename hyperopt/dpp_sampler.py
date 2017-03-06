@@ -202,8 +202,8 @@ if __name__ == "__main__":
     import matplotlib.pyplot as plt
     #test()
     #sys.exit(0)
-    x = np.arange(0, 1, 0.1)
-    y = np.arange(0, 1, 0.1)
+    x = np.arange(0, 1, 0.01)
+    y = np.arange(0, 1, 0.01)
     z = np.array(list(product(x, y)))
     sigmas = [0.0001, 0.1, 1, 2, 10]
     k = 1

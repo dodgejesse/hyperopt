@@ -34,6 +34,7 @@ def suggest(new_ids, domain, trials, seed):
     #print("\n\n")
     #print_apply_object(domain.s_idxs_vals, "")
     #print("\n\n")
+    import pdb; pdb.set_trace()
     rng = np.random.RandomState(seed)
     rval = []
     for ii, new_id in enumerate(new_ids):

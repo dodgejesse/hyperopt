@@ -40,8 +40,6 @@ from .algobase import (
     )
 #mostly debugging:
 import dpp_sampler
-from discretize_space import Discretizer
-from discretized_distance import Compute_Dist
 from hparam_as_vector import Make_Vector
 import random
 
@@ -231,7 +229,7 @@ class AnnealingAlgo(SuggestAlgo):
         Returns: a list with one value in it: the suggested value for this
         hyperparameter
         """
-        import pdb; pdb.set_trace()    
+
         if log_scale:
             val = np.log(val)
         high = memo[node.arg['high']]
@@ -380,8 +378,7 @@ def avg_dist_of_set(sampled_items, distance_calc, max_L, min_L):
         for k in range(j,len(sampled_items)):
             if j == k:
                 continue
-            cur_dist = distance_calc(sampled_items[j], 
-                                                       sampled_items[k])
+            cur_dist = distance_calc(sampled_items[j], sampled_items[k])
             counter += 1
             if max_L is not None and min_L is not None:
                 avg_dist += 2*(cur_dist-min_L)/(max_L-min_L)-1
@@ -398,7 +395,9 @@ def check_sampled_points_more_diverse(L,max_L,min_L, distance_calc, d_space,k):
     rand_avg = 0
     num_sets = 2500
     for i in range(num_sets):
-        dpp_sampled_items = dpp_sampler.sample_k(d_space, L, set_size, max_nb_iterations = 10000)
+        #dpp_sampled_items = dpp_sampler.sample_k(d_space, L, set_size, max_nb_iterations = 10000)
+        dpp_sampled_indices = dpp_sampler.dpp.sample_dpp(L, k)
+        dpp_sampled_items = [d_space[index] for index in dpp_sampled_indices]
         cur_dpp_avg = avg_dist_of_set(dpp_sampled_items, distance_calc, max_L, min_L)
         
         dpp_avg = (dpp_avg * i + cur_dpp_avg)/(i+1)
@@ -411,49 +410,27 @@ def check_sampled_points_more_diverse(L,max_L,min_L, distance_calc, d_space,k):
         
     print('dpp_avg: {}'.format(dpp_avg))
     print('rand_avg: {}'.format(rand_avg))
+
 def generate_L_from_vectors(vectors):
     L = np.dot(vectors, np.transpose(vectors))
-    #somehow this seems to get rid of the machine precision errors from the above line
+    #somehow this seems to help get rid of the machine precision errors from the above line
     L_sym = (np.transpose(L)+L)*(1.0/2)
     #this adds a eps*I to L anyway, just to make double sure it's psd
     L_prime = L_sym + np.identity(len(L_sym))*(np.power(10.0,-14))
     return L_prime
     
-    
+
+
+
+#DEBUGGING
+#This is super janky. i don't know the correct way to make the output format, so i'm guessing
+#should replicate what hyperopt.pyll.base.rec_eval does, but i can't figure out how it does it
+def output_format(new_vals):
+    #have: 
+    print 'hi'
 
 def suggest(new_ids, domain, trials, seed, *args, **kwargs):
-    
-    
-    discretizer = Discretizer()
-    d_space = discretizer.discretize_space(domain)
-    
-    make_vect = Make_Vector(domain.expr)
-    vectors = np.asarray(make_vect.make_vectors(d_space))
-    L = generate_L_from_vectors(vectors)
-    distance_calc = Compute_Dist(domain.expr)
     import pdb; pdb.set_trace()
-    dpp_sampler.sample(d_space, L)
-    
-    check_sampled_points_more_diverse(L, None, None, distance_calc.compute_distance, d_space, 5)
-    #L,max_L,min_L = dpp_sampler.build_norm_similary_matrix(distance_calc.compute_distance, d_space)
-    dpp_sampler.test_k_dpp(100,5)
-    check_sampled_points_more_diverse(L,max_L,min_L, distance_calc.compute_distance, d_space,5)
-    sampled_items = dpp_sampler.sample_k(d_space, L, 5)
-    
-    distance_calc.check_distances_correct(L)
-    #discritized_space = discritize_space(domain)
-    
-    apply_s_idxs_vals = pyll.as_apply(domain.s_idxs_vals)
-    dfs_apply_s_idxs_vals= pyll.dfs(apply_s_idxs_vals)
-    todo = deque(dfs_apply_s_idxs_vals)
-    memo = {domain.s_new_ids: new_ids, domain.s_rng:seed}
-    for thing in todo:
-        print thing
-
-
-
-    #eval_nodes(todo, memo)
-    
     new_id, = new_ids
     print "new_ids: " + str(new_ids)
     print "new_ID: " + str(new_id)
@@ -463,77 +440,36 @@ def suggest(new_ids, domain, trials, seed, *args, **kwargs):
     print "AnnealingAlgo(domain, trials, seed, *args, **kwargs)(new_id):"
     to_return = obj(new_id)
     print to_return
-    return to_return
+    #return to_return
 
 
-#stolen from algobase.py
-def eval_nodes(todo, memo):
-    counter = 0
-    while todo:
-        counter = counter + 1
-        #if len(todo) > self.max_program_len:
-        #    raise RuntimeError('Probably infinite loop in document')
-        node = todo.pop()
-
-        if node in memo:
-            # -- we've already computed this, move on.
-            continue
-
-        # -- different kinds of nodes are treated differently:
-        if node.name == 'switch':
-            waiting_on = self.on_switch(memo, node)
-            if waiting_on is None:
-                continue
-        elif isinstance(node, pyll.Literal):
-            # -- constants go straight into the memo
-            #self.set_in_memo(memo, node, node.obj)
-            memo[node] = node.obj
-            continue
-        else:
-            # -- normal instruction-type nodes have inputs
-            waiting_on = [v for v in node.inputs() if v not in memo]
-
-        if waiting_on:
-            # -- Necessary inputs have yet to be evaluated.
-            #    push the node back in the queue, along with the
-            #    inputs it still needs
-            todo.append(node)
-            todo.extend(waiting_on)
-        else:
-            rval = on_node(memo, node)
-            if isinstance(rval, pyll.Apply):
-                # -- if an instruction returns a Pyll apply node
-                # it means evaluate that too. Lambdas do this.
-                #
-                # XXX: consider if it is desirable, efficient, buggy
-                #      etc. to keep using the same memo dictionary.
-                #      I think it is OK because by using the same
-                #      dictionary all of the nodes are stored in the memo
-                #      so all keys are preserved until the entire outer
-                #      function returns
-                evaluator = self.__class__(rval,
-                                           self.deep_copy_inputs,
-                                           self.max_program_len,
-                                           self.memo_gc)
-                foo = evaluator(memo)
-                self.set_in_memo(memo, node, foo)
-            else:
-                self.set_in_memo(memo, node, rval)
-    return memo
-
-def on_node(memo, node):
-    # -- Retrieve computed arguments of apply node
-    args = _args = [memo[v] for v in node.pos_args]
-    kwargs = _kwargs = dict([(k, memo[v])
-                             for (k, v) in node.named_args])
-
-    #if self.memo_gc:
-    #    # -- Ensure no computed argument has been (accidentally) freed for
-    #    #    garbage-collection.
-    #    for aa in args + kwargs.values():
-    #        assert aa is not pyll.base.GarbageCollected
-
-    return pyll.scope._impls[node.name](*args, **kwargs)
 
 
-# -- flake-8 abhors blank line EOF
+    
+    from discretize_space import Discretizer
+    from discretized_distance import Compute_Dist
+    import dpp_sampler.dpp
+
+    discretizer = Discretizer()
+    d_space = discretizer.discretize_space(domain)
+    
+    make_vect = Make_Vector(domain.expr)
+    vectors = np.asarray(make_vect.make_vectors(d_space))
+    L = generate_L_from_vectors(vectors)
+    distance_calc = Compute_Dist(domain.expr)
+
+    #THIS SHIT DON'T WORK, FIX IT
+    check_sampled_points_more_diverse(L, None, None, distance_calc.compute_distance, d_space, 5)
+    #L,max_L,min_L = dpp_sampler.build_norm_similary_matrix(distance_calc.compute_distance, d_space)
+    dpp_sampler.test_k_dpp(100,5)
+    check_sampled_points_more_diverse(L,max_L,min_L, distance_calc.compute_distance, d_space,5)
+    sampled_items = dpp_sampler.sample_k(d_space, L, 5)
+    
+    distance_calc.check_distances_correct(L)
+    
+    apply_s_idxs_vals = pyll.as_apply(domain.s_idxs_vals)
+    dfs_apply_s_idxs_vals= pyll.dfs(apply_s_idxs_vals)
+    todo = deque(dfs_apply_s_idxs_vals)
+    memo = {domain.s_new_ids: new_ids, domain.s_rng:seed}
+    for thing in todo:
+        print thing

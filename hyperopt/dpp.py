@@ -42,7 +42,7 @@ from .algobase import (
 import dpp_sampler
 from hparam_as_vector import Make_Vector
 import random
-
+import copy
 
 logger = logging.getLogger(__name__)
 
@@ -425,9 +425,23 @@ def generate_L_from_vectors(vectors):
 #DEBUGGING
 #This is super janky. i don't know the correct way to make the output format, so i'm guessing
 #should replicate what hyperopt.pyll.base.rec_eval does, but i can't figure out how it does it
-def output_format(new_vals):
-    #have: 
-    print 'hi'
+# also mostly coping algobase.SuggestAlgo.__call__
+def output_format(vals, new_id, domain, trials):
+    import pdb; pdb.set_trace()
+    idxs = {}
+    for k in vals:
+        if vals[k] == []:
+            idxs[k] = []
+        else:
+            idxs[k] = [new_id]
+    new_result = domain.new_result()
+
+    new_misc = dict(tid=new_id, cmd=domain.cmd, workdir=domain.workdir)
+    #DEBUG not sure what this next line does
+    from base import miscs_update_idxs_vals
+    miscs_update_idxs_vals([new_misc], idxs, vals)
+    rval = trials.new_trial_docs([new_id], [None], [new_result], [new_misc])
+    return rval
 
 def suggest(new_ids, domain, trials, seed, *args, **kwargs):
     import pdb; pdb.set_trace()
@@ -444,7 +458,7 @@ def suggest(new_ids, domain, trials, seed, *args, **kwargs):
 
 
 
-
+    
     
     from discretize_space import Discretizer
     from discretized_distance import Compute_Dist
@@ -453,17 +467,14 @@ def suggest(new_ids, domain, trials, seed, *args, **kwargs):
     discretizer = Discretizer()
     d_space = discretizer.discretize_space(domain)
     
+    output_format(d_space[45678], new_id, domain, trials)
+
     make_vect = Make_Vector(domain.expr)
     vectors = np.asarray(make_vect.make_vectors(d_space))
     L = generate_L_from_vectors(vectors)
     distance_calc = Compute_Dist(domain.expr)
 
-    #THIS SHIT DON'T WORK, FIX IT
-    check_sampled_points_more_diverse(L, None, None, distance_calc.compute_distance, d_space, 5)
-    #L,max_L,min_L = dpp_sampler.build_norm_similary_matrix(distance_calc.compute_distance, d_space)
-    dpp_sampler.test_k_dpp(100,5)
-    check_sampled_points_more_diverse(L,max_L,min_L, distance_calc.compute_distance, d_space,5)
-    sampled_items = dpp_sampler.sample_k(d_space, L, 5)
+    #check_sampled_points_more_diverse(L, None, None, distance_calc.compute_distance, d_space, 5)
     
     distance_calc.check_distances_correct(L)
     

@@ -2,7 +2,7 @@ import numpy as np
 import copy
 from none_storage import None_storage
 class Discretizer():
-    num_discrete_steps = 4.0
+    num_discrete_steps = 3.0
 
     def increment_uniform(self, node, hp_out, step_size=None):
         lower_bound = node.pos_args[0].pos_args[1].pos_args[0].obj
@@ -46,18 +46,18 @@ class Discretizer():
     #
     #returns true if successfully incremented node
     #returns false if this is the first or only value it can take
-    def increment_leaf(self, node, hp_out, enter_vals):
-        leaf_name = node.pos_args[0].pos_args[0].obj
+    def increment_float(self, node, hp_out, enter_vals):
+        float_name = node.pos_args[0].pos_args[0].obj
         if not enter_vals:
-            hp_out[leaf_name] = []
+            hp_out[float_name] = []
             return False
-        elif leaf_name not in hp_out:
-            hp_out[leaf_name] = []
+        elif float_name not in hp_out:
+            hp_out[float_name] = []
         distribution = node.pos_args[0].pos_args[1].name
         handler = getattr(self, 'increment_%s' % distribution)
         
         #calls an increment method, but only passes in the list for this node, not all of hp_out
-        return handler(node, hp_out[leaf_name])
+        return handler(node, hp_out[float_name])
         
             
 
@@ -121,11 +121,11 @@ class Discretizer():
         elif node.name == 'pos_args':
             return self.increment_pos_args(node, hp_out, enter_vals)
         elif node.name == 'float':
-            return self.increment_leaf(node, hp_out, enter_vals)
+            return self.increment_float(node, hp_out, enter_vals)
         elif node.name == 'literal':
             return False
         else:
-            raise ValueError("some kind of leaf node that isn't supported in discritization!")
+            raise ValueError("some kind of node that isn't supported in discritization!")
 
     def debug_remove_shit(self, root, max_index_to_keep=None, type_to_keep=None):
         for i in range(len(root.named_args[1][1].pos_args[1].named_args)):
@@ -174,7 +174,7 @@ class Discretizer():
         #current hparam setting
         root = domain.expr
         #import pdb; pdb.set_trace()        
-        self.debug_remove_shit(root, max_index_to_keep=4)
+        #self.debug_remove_shit(root, max_index_to_keep=4)
 
         cur_incremented_values = {}
         self.increment_node(root,cur_incremented_values,True)

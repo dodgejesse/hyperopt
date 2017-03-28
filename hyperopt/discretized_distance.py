@@ -5,8 +5,7 @@ class Compute_Dist():
     def __init__(self, root):
         self.root = root
 
-    #checks that L is only 0 on the diagonal, and 
-    # the max distance is between the first and last items
+    # prints the min and max elements of L, and where those are found
     # perhaps all horizontal neighbors less than num_discrete_steps apart in L
     # should be different, assuming only hparams are floats (not switches)
     def check_distances_correct(self, L):
@@ -39,57 +38,51 @@ class Compute_Dist():
     #if first is none and second isn't, switch them. 
     #this way we only have to check if second is none
     def compute_pair_distance(self, first, second, node):
-        if first is None and second is None:
-            return 0
-        elif first is None and second is not None:
-            return self.compute_pair_distance(second, first, node)
-        elif node.name == 'dict':
+        if node.name == 'dict':
             return self.dict_distance(first, second, node)
         elif node.name == 'switch':
             return self.switch_distance(first, second, node)
         elif node.name == 'pos_args':
             return self.pos_args_distance(first, second, node)
+        elif node.name == 'float':
+            return self.float_distance(first, second, node)
+        elif node.name == 'literal':
+            return 0
         else:
-            return self.leaf_distance(first, second, node)
+            raise ValueError("some kind of leaf node that isn't supported in measuring distance!")
 
     def dict_distance(self, first, second, node):
         cur_dist = 0
         for name, child in node.named_args:
-            if second is not None:
-                cur_dist += self.compute_pair_distance(first[name], second[name], child)
-            else:
-                cur_dist += self.compute_pair_distance(first[name], second, child)
+            cur_dist += self.compute_pair_distance(first, second, child)
         return cur_dist
 
     def switch_distance(self, first, second, node):
         cur_dist = 0
+        switch_name = node.pos_args[0].pos_args[0].obj
+        #if at least one switch is off, or they're both on but not equal, add 1 to dist
+        if not first[switch_name] == second[switch_name]:
+            cur_dist += 1
         for i in range(len(node.pos_args)-1):
-            if second is not None:
-                cur_dist += self.compute_pair_distance(first[i], second[i], node.pos_args[i+1])
-            else:
-                cur_dist += self.compute_pair_distance(first[i], second, node.pos_args[i+1])
+            cur_dist += self.compute_pair_distance(first, second, node.pos_args[i+1])
         return cur_dist
         
     def pos_args_distance(self, first, second, node):
         cur_dist = 0
         for i in range(len(node.pos_args)):
-            if second is not None:
-                cur_dist += self.compute_pair_distance(first[i], second[i], node.pos_args[i])
-            else:
-                cur_dist += self.compute_pair_distance(first[i], second, node.pos_args[i])
+                cur_dist += self.compute_pair_distance(first, second, node.pos_args[i])
         return cur_dist
 
-    def leaf_distance(self, first, second, node):
-        if second is None:
-            return 1
-        elif first == second:
+    def float_distance(self, first, second, node):
+        float_name = node.pos_args[0].pos_args[0].obj
+        if first[float_name] == second[float_name]:
             return 0
-        elif node.name == 'literal':
+        elif (first[float_name] == [] and not second[float_name] == []) or (not first[
+                float_name] == [] and second[float_name] == []):
             return 1
-        elif node.name == 'float':
-            distribution = node.pos_args[0].pos_args[1].name
-            handler = getattr(self, '%s_distance' % distribution)
-            return handler(first, second, node)
+        distribution = node.pos_args[0].pos_args[1].name
+        handler = getattr(self, '%s_distance' % distribution)
+        return handler(first[float_name][0], second[float_name][0], node)
     
     def uniform_distance(self, first, second, node):
         lower_bound = node.pos_args[0].pos_args[1].pos_args[0].obj

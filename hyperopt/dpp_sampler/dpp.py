@@ -1,10 +1,26 @@
 import numpy as np
 from scipy.sparse.linalg.eigen.arpack import eigsh as largest_eigsh
 from  numpy.linalg import inv
-import os
+import os, sys, time
 mtb = None
 
-def sample_dpp(L,k=None):
+
+def initialize_mtb(seed):
+        print("starting matlab..."),
+        sys.stdout.flush()
+        import matlab_wrapper
+        matlb = matlab_wrapper.MatlabSession()
+        matlb.put('current_dir', os.path.dirname(os.path.realpath(__file__)))
+        matlb.eval("addpath(current_dir)")
+        if not seed is None:
+                matlb.put('seed',seed)
+                matlb.eval("rng(seed)")
+        print("done!")
+        sys.stdout.flush()
+        return matlb
+    
+
+def sample_dpp(L,k=None,seed=None):
     '''
     Wrapper function for the sample_dpp Matlab code written by Alex Kulesza
     Given a kernel matrix L, returns a sample from a k-DPP.
@@ -14,24 +30,27 @@ def sample_dpp(L,k=None):
     k:     size of the sample from the DPP
     set:   index of the conditional elements. Integer numpy array containing the locations 
             (starting in zero) relative to the rows of L.
-       
     '''
     # Matlab link
     global mtb    
     if mtb == None:
-        import matlab_wrapper
-        mtb = matlab_wrapper.MatlabSession()
-        mtb.put('current_dir', os.path.dirname(os.path.realpath(__file__)))
-        mtb.eval("addpath(current_dir)")
+        mtb = initialize_mtb(seed)
     # load values in Matlab and get sample
     mtb.put('L',L)
+    start_time = time.time()
+    print("sampling {} items from a DPP of size {}...".format(k, len(L))),
+    sys.stdout.flush()
     if k!=None: 
         k = np.array([[k]])  # matlab only undenstand matrices 
         mtb.put('k',k)
         mtb.eval("dpp_sample = sample_dpp(decompose_kernel(L),k)")
     else:
         mtb.eval("dpp_sample = sample_dpp(decompose_kernel(L))")
-        
+    print("done! took {} seconds".format(round(time.time() - start_time,2)))
+    # print statements in case we're interested in putting the time in a latex table
+    #print("\\hline")
+    #print("{} & {} & \\\\".format(k[0][0],round(time.time() - start_time,3)))
+    sys.stdout.flush()
     #dpp_sample = mtb.getvalue('dpp_sample')
     dpp_sample = mtb.get('dpp_sample')
     return dpp_sample.astype(int)-1  # index start in zero in python
@@ -102,10 +121,7 @@ def sample_dual_dpp(L,q,k=None):
     # Matlab link
     global mtb    
     if mtb == None:
-        import matlab_wrapper
-        mtb = matlab_wrapper.MatlabSession()
-        mtb.put('current_dir', os.path.dirname(os.path.realpath(__file__)))
-        mtb.eval("addpath(current_dir)")
+        mtb = initialize_mtb()
         
     # Extract the feature matrix from the kernel
     evals, evecs = largest_eigsh(L,q,which='LM')
@@ -113,7 +129,9 @@ def sample_dual_dpp(L,q,k=None):
     
     # load values in Matlab and get sample
     mtb.put('B',B)
-    
+    print("sampling {} items from a dual DPP of size {}...".format(k,len(L))),    
+    start_time = time.time()
+    sys.stdout.flush()
     if k!=None: 
         k = np.array([[k]])  # matlab only undernstand matrices 
         mtb.put('k',k)
@@ -122,6 +140,8 @@ def sample_dual_dpp(L,q,k=None):
         mtb.eval("dpp_sample = sample_dual_dpp(B,decompose_kernel(B'*B))")
         
     dpp_sample = mtb.get('dpp_sample')
+    print("done! took {} seconds".format(round(time.time() - start_time,2)))
+    sys.stdout.flush()
     return dpp_sample.astype(int)
 
 

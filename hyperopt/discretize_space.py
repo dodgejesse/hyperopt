@@ -2,7 +2,9 @@ import numpy as np
 import copy
 from none_storage import None_storage
 class Discretizer():
-    num_discrete_steps = 3.0
+    def __init__(self,num_discrete_steps=6.0):
+        self.num_discrete_steps = float(num_discrete_steps)
+    
 
     def increment_uniform(self, node, hp_out, step_size=None):
         lower_bound = node.pos_args[0].pos_args[1].pos_args[0].obj
@@ -179,7 +181,7 @@ class Discretizer():
         cur_incremented_values = {}
         self.increment_node(root,cur_incremented_values,True)
         incremented = True
-
+        #print("discretizing hyperparameter search space...")
         while incremented:
             hp_out_set.append(copy.deepcopy(cur_incremented_values))
             incremented = self.increment_node(root, cur_incremented_values, True)
@@ -187,5 +189,7 @@ class Discretizer():
             if len(hp_out_set) % 10000 == 0 and print_10_k:
                 print("current size of set: " + str(len(hp_out_set)))
                 print(hp_out_set[len(hp_out_set)-1])
+        #DEBUG
+        #print("done discretizing hyperparameter search space. set size: {}".format(len(hp_out_set)))
         
         return hp_out_set

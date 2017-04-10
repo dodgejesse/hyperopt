@@ -288,7 +288,7 @@ def fmin(fn, space, algo, max_evals, trials=None, rstate=None,
 
     """
 
-    import pdb; pdb.set_trace()
+    #import pdb; pdb.set_trace()
 
     if rstate is None:
         rstate = np.random.RandomState()
@@ -307,6 +307,8 @@ def fmin(fn, space, algo, max_evals, trials=None, rstate=None,
 
     if trials is None:
         trials = base.Trials()
+
+    trials.max_evals = max_evals
 
     domain = base.Domain(fn, space,
         pass_expr_memo_ctrl=pass_expr_memo_ctrl)

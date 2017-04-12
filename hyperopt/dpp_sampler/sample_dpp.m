@@ -1,7 +1,10 @@
-function Y = sample_dpp(L,k)
+function Y = sample_dpp(L,seed,k)
 % sample a set Y from a dpp.  L is a decomposed kernel, and k is (optionally)
 % the size of the set to return.
   
+% sets the random seed (for some reason required, or it always gives the same results)
+rng(seed)
+
 if ~exist('k','var')  
   % choose eigenvectors randomly
   D = L.D ./ (1+L.D);

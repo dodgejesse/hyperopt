@@ -39,7 +39,7 @@ from .algobase import (
     ExprEvaluator,
     )
 #mostly debugging:
-import dpp_sampler
+#import dpp_sampler
 from hparam_as_vector import Make_Vector
 import random
 import copy
@@ -135,24 +135,13 @@ def output_format(vals, new_id, domain, trials):
     return rval
 
 def suggest(new_ids, domain, trials, seed, *args, **kwargs):
-    #import pdb; pdb.set_trace()
-    #new_id, = new_ids
-    #print "new_ids: " + str(new_ids)
-    #print "new_ID: " + str(new_id)
-    #obj = AnnealingAlgo(domain, trials, seed, *args, **kwargs)
-    #print "AnnealingAlgo(domain, trials, seed, *args, **kwargs):"
-    #print obj
-    #print "AnnealingAlgo(domain, trials, seed, *args, **kwargs)(new_id):"
-    #to_return = obj(new_id)
-    #print to_return
-    #return to_return
+    import pdb; pdb.set_trace()
 
     #if first time through, sample set of hparams 
     if new_ids[0] == 0:
         discretizer = Discretizer()
         d_space = discretizer.discretize_space(domain)
 
-        #import pdb; pdb.set_trace()
         make_vect = Make_Vector(domain.expr)
         vectors = np.asarray(make_vect.make_vectors(d_space))
         L = generate_L_from_vectors(vectors)

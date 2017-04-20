@@ -145,14 +145,15 @@ def suggest(new_ids, domain, trials, seed, *args, **kwargs):
         make_vect = Make_Vector(domain.expr)
         vectors = np.asarray(make_vect.make_vectors(d_space))
         L = generate_L_from_vectors(vectors)
-    
+        
         check_diversity = False
         if check_diversity:
             distance_calc = Compute_Dist(domain.expr)
             check_sampled_points_more_diverse(L, None, None, distance_calc.compute_distance, d_space, 5)
-        
-        dpp_sampled_indices = dpp_sampler.dpp.sample_dpp(L, trials.max_evals, seed)
-        trials.dpp_sampled_points = [d_space[index] for index in dpp_sampled_indices]
+        import dpp_sample_compiled_matlab
+        dpp_sampled_indices = dpp_sample_compiled_matlab.sample_dpp(L, seed, trials.max_evals)
+        #dpp_sampled_indices = dpp_sampler.dpp.sample_dpp(L, trials.max_evals, seed)
+        trials.dpp_sampled_points = [d_space[int(index)] for index in dpp_sampled_indices]
         print("The hyperparameter settings that will be evaluated:")
         for thing in trials.dpp_sampled_points:
             print thing

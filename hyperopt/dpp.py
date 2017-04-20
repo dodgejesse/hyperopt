@@ -135,7 +135,7 @@ def output_format(vals, new_id, domain, trials):
     return rval
 
 def suggest(new_ids, domain, trials, seed, *args, **kwargs):
-    import pdb; pdb.set_trace()
+    #import pdb; pdb.set_trace()
 
     #if first time through, sample set of hparams 
     if new_ids[0] == 0:
@@ -150,10 +150,10 @@ def suggest(new_ids, domain, trials, seed, *args, **kwargs):
         if check_diversity:
             distance_calc = Compute_Dist(domain.expr)
             check_sampled_points_more_diverse(L, None, None, distance_calc.compute_distance, d_space, 5)
-        #import dpp_sample_compiled_matlab
-        #dpp_sampled_indices = dpp_sample_compiled_matlab.sample_dpp(L, seed, trials.max_evals)
+        import dpp_sample_compiled_matlab
+        dpp_sampled_indices = dpp_sample_compiled_matlab.sample_dpp(L, seed, trials.max_evals)
         #dpp_sampled_indices = dpp_sampler.dpp.sample_dpp(L, trials.max_evals, seed)
-        dpp_sampled_indices = [[i] for i in range(50)]
+        #dpp_sampled_indices = [[i] for i in range(50)]
         trials.dpp_sampled_points = [d_space[int(index[0])] for index in dpp_sampled_indices]
         print("The hyperparameter settings that will be evaluated:")
         for thing in trials.dpp_sampled_points:

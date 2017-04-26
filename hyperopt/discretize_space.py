@@ -2,7 +2,7 @@ import numpy as np
 import copy
 from none_storage import None_storage
 class Discretizer():
-    def __init__(self,num_discrete_steps=6.0):
+    def __init__(self,num_discrete_steps=15.0):
         self.num_discrete_steps = float(num_discrete_steps)
     
 
@@ -190,6 +190,6 @@ class Discretizer():
                 print("current size of set: " + str(len(hp_out_set)))
                 print(hp_out_set[len(hp_out_set)-1])
         #DEBUG
-        #print("done discretizing hyperparameter search space. set size: {}".format(len(hp_out_set)))
+        print("done discretizing hyperparameter search space. set size: {}".format(len(hp_out_set)))
         
         return hp_out_set

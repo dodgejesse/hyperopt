@@ -13,39 +13,15 @@ __authors__ = "mostly Jesse Dodge, but influenced by James Bergstra"
 __license__ = "3-clause BSD License"
 __contact__ = "github.com/jaberg/hyperopt"
 
-import logging
 
 import numpy as np
-from pyll.stochastic import (
-    # -- integer
-    categorical,
-    # randint, -- unneeded
-    # -- normal
-    normal,
-    lognormal,
-    qnormal,
-    qlognormal,
-    # -- uniform
-    uniform,
-    loguniform,
-    quniform,
-    qloguniform,
-    )
-import pyll
-from collections import deque
-from .base import miscs_to_idxs_vals
-from .algobase import (
-    SuggestAlgo,
-    ExprEvaluator,
-    )
-#mostly debugging:
-#import dpp_sampler
 from hparam_as_vector import Make_Vector
 import random
 import copy
 from discretize_space import Discretizer
 from discretized_distance import Compute_Dist
-
+import dpp_sample_compiled_matlab
+import time
 
 
 def get_num_quantiles(node):
@@ -150,11 +126,15 @@ def suggest(new_ids, domain, trials, seed, *args, **kwargs):
         if check_diversity:
             distance_calc = Compute_Dist(domain.expr)
             check_sampled_points_more_diverse(L, None, None, distance_calc.compute_distance, d_space, 5)
-        import dpp_sample_compiled_matlab
+        
+
+        start_sample_time = time.time()
         dpp_sampled_indices = dpp_sample_compiled_matlab.sample_dpp(L, seed, trials.max_evals)
-        #dpp_sampled_indices = dpp_sampler.dpp.sample_dpp(L, trials.max_evals, seed)
-        #dpp_sampled_indices = [[i] for i in range(50)]
-        trials.dpp_sampled_points = [d_space[int(index[0])] for index in dpp_sampled_indices]
+        print("sampling {} items from a DPP of size {} took {} seconds".format(trials.max_evals, 
+                            len(L), time.time() - start_sample_time))
+
+        
+        trials.dpp_sampled_points = [d_space[int(index[0])-1] for index in dpp_sampled_indices]
         print("The hyperparameter settings that will be evaluated:")
         for thing in trials.dpp_sampled_points:
             print thing
@@ -164,7 +144,7 @@ def suggest(new_ids, domain, trials, seed, *args, **kwargs):
 
 
 def time_dpp(domain, trials, num_discrete_steps=11, k=None, print_L_time=False):
-    import time
+
     discretizer = Discretizer(num_discrete_steps)
     d_space = discretizer.discretize_space(domain)
 

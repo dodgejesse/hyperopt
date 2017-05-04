@@ -22,6 +22,7 @@ from discretize_space import Discretizer
 from discretized_distance import Compute_Dist
 import dpp_sample_compiled_matlab
 import time
+import sys
 
 
 def get_num_quantiles(node):
@@ -113,7 +114,7 @@ def output_format(vals, new_id, domain, trials):
 def suggest(new_ids, domain, trials, seed, *args, **kwargs):
     #import pdb; pdb.set_trace()
 
-    #if first time through, sample set of hparams 
+    #if first time through, sample set of hparams
     if new_ids[0] == 0:
         discretizer = Discretizer()
         d_space = discretizer.discretize_space(domain)
@@ -127,6 +128,21 @@ def suggest(new_ids, domain, trials, seed, *args, **kwargs):
             distance_calc = Compute_Dist(domain.expr)
             check_sampled_points_more_diverse(L, None, None, distance_calc.compute_distance, d_space, 5)
         
+        print_dpp_samples = False
+        if print_dpp_samples:
+            print("ABOUT TO START PRINTING DPP SAMPLES")
+            print("")
+            for i in range(100):
+                dpp_sampled_indices = dpp_sample_compiled_matlab.sample_dpp(L, np.random.randint(seed), trials.max_evals)
+                points = []
+                for index in dpp_sampled_indices:
+                    points.append(d_space[int(index[0])-1])
+                    points[len(points)-1]['index'] = int(index[0]-1)
+                
+                for thing in points:
+                    print thing
+                print("")
+            sys.exit(0)
 
         start_sample_time = time.time()
         dpp_sampled_indices = dpp_sample_compiled_matlab.sample_dpp(L, seed, trials.max_evals)

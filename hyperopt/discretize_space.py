@@ -189,7 +189,6 @@ class Discretizer():
             if len(hp_out_set) % 10000 == 0 and print_10_k:
                 print("current size of set: " + str(len(hp_out_set)))
                 print(hp_out_set[len(hp_out_set)-1])
-        #DEBUG
         print("done discretizing hyperparameter search space. set size: {}".format(len(hp_out_set)))
         
         return hp_out_set

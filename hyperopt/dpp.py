@@ -79,15 +79,30 @@ def check_sampled_points_more_diverse(L,max_L,min_L, distance_calc, d_space,k):
     print('dpp_avg: {}'.format(dpp_avg))
     print('rand_avg: {}'.format(rand_avg))
 
-def generate_L_from_vectors(vectors):
-    L = np.dot(vectors, np.transpose(vectors))
-    #somehow this seems to help get rid of the machine precision errors from the above line
-    L_sym = (np.transpose(L)+L)*(1.0/2)
-    #this adds a eps*I to L anyway, just to make double sure it's psd
-    L_prime = L_sym + np.identity(len(L_sym))*(np.power(10.0,-14))
+def generate_L_from_vectors(vectors, hamming_distance):
+    if not hamming_distance:
+        L = np.dot(vectors, np.transpose(vectors))
+        # make it more symmetric
+        L_sym = (np.transpose(L)+L)*(1.0/2)
+        #this adds a eps*I to L anyway, just to make double sure it's psd
+        L_prime = L_sym + np.identity(len(L_sym))*(np.power(10.0,-14))
+
+    else:
+        L = (vectors[:, None, :] == vectors).sum(2)
+        # to linearly rescale from [min,max] to [a,b]:
+        # f(x) = ((b-a)(x-min))/(max-min)+a
+        #      = (x) (b-a)/(max-min)-(b-a)(min)/(max-min)+a
+        ma = len(vectors[0])*1.0
+        mi = 1*1.0
+        a = -1*1.0
+        b = 1*1.0
+        mult = (b-a)/(ma-mi)
+        add = -(b-a)*(mi)/(ma-mi)+a
+        L_scaled = np.multiply(L, mult)
+        L_prime = L_scaled + add
+
     return L_prime
     
-
 
 
 #DEBUGGING
@@ -111,6 +126,7 @@ def output_format(vals, new_id, domain, trials):
     rval = trials.new_trial_docs([new_id], [None], [new_result], [new_misc])
     return rval
 
+
 def suggest(new_ids, domain, trials, seed, *args, **kwargs):
     #import pdb; pdb.set_trace()
 
@@ -120,8 +136,11 @@ def suggest(new_ids, domain, trials, seed, *args, **kwargs):
         d_space = discretizer.discretize_space(domain)
 
         make_vect = Make_Vector(domain.expr)
-        vectors = np.asarray(make_vect.make_vectors(d_space))
-        L = generate_L_from_vectors(vectors)
+        
+        hamming_distance=trials.dpp_ham
+        vectors = np.asarray(make_vect.make_vectors(d_space, hamming_distance))
+
+        L = generate_L_from_vectors(vectors, hamming_distance)
         
         check_diversity = False
         if check_diversity:

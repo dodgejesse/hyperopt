@@ -5,14 +5,20 @@ class Make_Vector():
     def __init__(self, root):
         self.root = root
 
-    def make_vectors(self, hparam_sets):
+    def make_vectors(self, hparam_sets, hamming_dist):
+        global HAMMING_DIST
+        HAMMING_DIST = hamming_dist
         vectors = []
         for i in range(len(hparam_sets)):
             vect = []
             self.make_vect(hparam_sets[i], vect, self.root)
             vect.append(1)
             vect_as_array = np.asarray(vect)
-            vectors.append(vect_as_array/np.linalg.norm(vect_as_array,2))
+            if hamming_dist:
+                vectors.append(vect_as_array)
+            if not hamming_dist:
+                vectors.append(vect_as_array/np.linalg.norm(vect_as_array,2))
+            
         
         return vectors
 
@@ -54,18 +60,22 @@ class Make_Vector():
 
     def float_vect(self, hparams, vect, node):
         float_name = node.pos_args[0].pos_args[0].obj
+        lower_bound = node.pos_args[0].pos_args[1].pos_args[0].obj
+        upper_bound = node.pos_args[0].pos_args[1].pos_args[1].obj
         if hparams[float_name] == []:
             vect.append(0)
+            return
+        elif lower_bound == upper_bound:
+            return
+        elif HAMMING_DIST:
+            vect.append(hparams[float_name][0])
             return
         distribution = node.pos_args[0].pos_args[1].name
         handler = getattr(self, '%s_distance' % distribution)
         handler(hparams[float_name][0], vect, node, float_name)
 
     def uniform_distance(self, hparam, vect, node, float_name):
-        lower_bound = node.pos_args[0].pos_args[1].pos_args[0].obj
-        upper_bound = node.pos_args[0].pos_args[1].pos_args[1].obj
-        if not lower_bound == upper_bound:
-            vect.append((1.0*hparam - lower_bound)/(upper_bound - lower_bound))
+        vect.append((1.0*hparam - lower_bound)/(upper_bound - lower_bound))
         
     def loguniform_distance(self, hparam, vect, node, float_name):
         self.uniform_distance(np.log(hparam), vect, node, float_name)

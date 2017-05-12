@@ -2,7 +2,7 @@ import numpy as np
 import copy
 from none_storage import None_storage
 class Discretizer():
-    def __init__(self,num_discrete_steps=5.0):
+    def __init__(self,num_discrete_steps=15.0):
         self.num_discrete_steps = float(num_discrete_steps)
     
 

@@ -128,7 +128,7 @@ def output_format(vals, new_id, domain, trials):
 
 
 def suggest(new_ids, domain, trials, seed, *args, **kwargs):
-    import pdb; pdb.set_trace()
+    #import pdb; pdb.set_trace()
 
     #if first time through, sample set of hparams
     if new_ids[0] == 0:

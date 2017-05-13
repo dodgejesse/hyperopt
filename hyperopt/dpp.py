@@ -128,11 +128,11 @@ def output_format(vals, new_id, domain, trials):
 
 
 def suggest(new_ids, domain, trials, seed, *args, **kwargs):
-    #import pdb; pdb.set_trace()
+    import pdb; pdb.set_trace()
 
     #if first time through, sample set of hparams
     if new_ids[0] == 0:
-        discretizer = Discretizer()
+        discretizer = Discretizer(trials.discretize_num)
         d_space = discretizer.discretize_space(domain)
 
         make_vect = Make_Vector(domain.expr)

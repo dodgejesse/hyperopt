@@ -75,6 +75,8 @@ class Make_Vector():
         handler(hparams[float_name][0], vect, node, float_name)
 
     def uniform_distance(self, hparam, vect, node, float_name):
+        lower_bound = node.pos_args[0].pos_args[1].pos_args[0].obj
+        upper_bound = node.pos_args[0].pos_args[1].pos_args[1].obj
         vect.append((1.0*hparam - lower_bound)/(upper_bound - lower_bound))
         
     def loguniform_distance(self, hparam, vect, node, float_name):

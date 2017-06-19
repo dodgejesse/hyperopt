@@ -1,3 +1,62 @@
+Random Search for Hyperparameters using Determinantal Point Processes
+=====================================================================
+
+This library is an extension to Hyperopt (with the original hyperopt
+README.txt below). This is the associated code for the paper found
+here: https://arxiv.org/abs/1706.01566
+
+At a high level, this is simply an extension to hyperopt which 
+incorporates sampling from a DPP. The DPP sampling code is from 
+Alex Kuleza's website (here: http://www.alexkulesza.com/ and
+the code here: http://www.alexkulesza.com/code/dpp.tgz). The original 
+code DPP code was written in matlab, but we've compiled that matlab
+code to Python and included it here. 
+
+Differences between this library and Hyperopt:
+
+* The example on http://hyperopt.github.io/hyperopt/ shows the fmin() function 
+  taking four parameters. Using hyperopt.dpp.suggest or hyperopt.dpp_random.suggest
+  search algorithms requires five: the same four as the example, plus a trials 
+  object which has two additional fields. an example:
+
+  trials = hyperopt.Trials()
+  trials.discretize_num = 4
+  trials.dpp_ham = True
+
+  the trials.discretize_num field is the number of discrete steps each hyperparameter
+  will take, and the boolean trials.dpp_ham is True when the distance 
+  used to construct the L matrix in the DPP is $k$-DPP-Hamm, False when
+  $k$-DPP-Cos is to be used. Then the call to fmin from the example is as follows:
+
+  best = fmin(objective, space, algo=tpe.suggest, max_evals=100, trials=trials)
+
+
+* The priors over hyperparameters which are implemented for DPP sampling are:
+  
+  hp.choice(label, options)
+  hp.randint(label, upper)
+  hp.uniform(label, low, high)
+  hp.quniform(label, low, high, q)	
+  hp.loguniform(label, low, high)
+  hp.qloguniform(label, low, high, q)
+  
+  those based on the normal distribution have not been implemented (though
+  that's on the TODO list). 
+		      
+The search algorithms implemented in Hyperopt (e.g. tpe.suggest, anneal.suggest, etc.)
+have not been changed. Three algorithms from the paper have been added: 
+$k$-DPP-Hamm:  hyperopt.dpp.suggest, with trials.dpp_ham = True
+$k$-DPP-Cos:   hyperopt.dpp.suggest, with trials.dpp_ham = False
+Uniform sampling on discretized space: hyperopt.dpp_random
+
+
+
+######################################################################################
+Installation instructions: 
+
+
+
+
 hyperopt: Distributed Asynchronous Hyper-parameter Optimization
 ===============================================================
 

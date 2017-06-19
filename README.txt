@@ -52,31 +52,55 @@ Uniform sampling on discretized space: hyperopt.dpp_random
 
 
 ######################################################################################
-Installation instructions: 
+# As the DPP code is MATLAB compiled to Python, it requires the MATLAB Runtime R2016a.
+# The directory dpp_sampler has an installer ("dpp_web.install") which installs both
+# the DPP sampling code and the correct version of MATLAB Runtime. If you already have
+# MATLAB Runtime R2016a installed you can try to use that instead. 
+
+# It is recommended to install with Anaconda (as the dependencies are easier to deal with)
+
+
+# Installation instructions: 
+
+# if installing on a fresh aws ec2 linux instance, these steps are necessary:
+yes | sudo yum groupinstall "Development Tools"
+yes | sudo yum install xorg-x11-xauth.x86_64 xorg-x11-server-utils.x86_64 dbus-x11.x86_64
+
+
+
+# first install MATLAB Runtime R2016a
+git clone https://github.com/dodgejesse/hyperopt.git
+cd hyperopt/dpp_sampler
+./dpp_web.install
+
+# in the GUI, choose a location for both DPP sampling code and MATLAB Runtime R2016a. 
+# it is recommended to install the DPP sampling code to 
+# hyperopt/dpp_sampler, but not necessary. keep track of both locations.
+
+# if installing on aws ec2 linux instance in location:
+# /home/ec2-user/software/matlab
+# then do the following: 
+export LD_LIBRARY_PATH="/usr/lib64:/lib64:/home/ec2-user/software/matlab/v901/runtime/glnxa64:/home/ec2-user/software/matlab/v901/bin/glnxa64:/home/ec2-user/software/matlab/v901/sys/os/glnxa64:/home/ec2-user/software/matlab/v901/sys/opengl/lib/glnxa64"
+export PYTHONPATH="/home/ec2-user/software/matlab/v901/extern/engines/python/dist"
+
+
+# to install hyperopt, navigate to the hyperopt directory and run:
+pip install -e .
+
+# install the dpp sampler (from the location you installed it):
+cd dpp_sampler/application
+python setup.py install
+
+# then the normal dependencies of hyperopt, e.g.:
+pip install scipy
+pip install pymongo
+pip install networkx
+pip install pandas
 
 
 
 
-hyperopt: Distributed Asynchronous Hyper-parameter Optimization
-===============================================================
 
-Hyperopt is a Python library for serial and parallel optimization over awkward
-search spaces, which may include real-valued, discrete, and conditional
-dimensions.
-
-Official project git repository:
-http://github.com/hyperopt/hyperopt
-
-Documentation:
-http://hyperopt.github.io/hyperopt
-
-Announcements mailing list:
-https://groups.google.com/forum/#!forum/hyperopt-announce
-
-Thanks
-------
-This work was supported in part by the National Science Foundation (IIS-0963668),
-and by the Banting Postdoctoral Fellowship program.
 
 
 
@@ -144,3 +168,33 @@ pip install pandas
 pip install scikit-learn
 pip install xgboost
 pip install tensorflow
+
+
+
+
+
+
+
+
+
+
+hyperopt: Distributed Asynchronous Hyper-parameter Optimization
+===============================================================
+
+Hyperopt is a Python library for serial and parallel optimization over awkward
+search spaces, which may include real-valued, discrete, and conditional
+dimensions.
+
+Official project git repository:
+http://github.com/hyperopt/hyperopt
+
+Documentation:
+http://hyperopt.github.io/hyperopt
+
+Announcements mailing list:
+https://groups.google.com/forum/#!forum/hyperopt-announce
+
+Thanks
+------
+This work was supported in part by the National Science Foundation (IIS-0963668),
+and by the Banting Postdoctoral Fellowship program.

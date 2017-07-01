@@ -5,7 +5,12 @@ import numpy as np
 
 # returns a matlab.double array which contains ints.
 def sample_dpp(L_np, seed, k):
+
+    
     L_list = np.ndarray.tolist(L_np)
+
+    L_list=[[1,.8,.7],[.8,1,.8],[.7,.8,1]]
+
     L = matlab.double(L_list)
     dpp_samp = DPP_Sampler.initialize()
     L_decomp = dpp_samp.decompose_kernel(L)

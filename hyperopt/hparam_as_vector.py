@@ -5,21 +5,17 @@ class Make_Vector():
     def __init__(self, root):
         self.root = root
 
-    def make_vectors(self, hparam_sets, hamming_dist):
-        global HAMMING_DIST
-        HAMMING_DIST = hamming_dist
+    def make_vectors(self, hparam_sets, dist):
+        global DISTANCE
+        DISTANCE = dist
         vectors = []
         for i in range(len(hparam_sets)):
             vect = []
             self.make_vect(hparam_sets[i], vect, self.root)
             vect.append(1)
-            vect_as_array = np.asarray(vect)
-            if hamming_dist:
-                vectors.append(vect_as_array)
-            if not hamming_dist:
-                vectors.append(vect_as_array/np.linalg.norm(vect_as_array,2))
-            
-        
+            vect_as_array = np.asarray(vect)            
+            vectors.append(vect_as_array)
+
         return vectors
 
 
@@ -67,9 +63,9 @@ class Make_Vector():
             return
         elif lower_bound == upper_bound:
             return
-        elif HAMMING_DIST:
-            vect.append(hparams[float_name][0])
-            return
+        #elif DISTANCE == "ham" or DISTANCE == "l2":
+        #    vect.append(hparams[float_name][0])
+        #    return
         distribution = node.pos_args[0].pos_args[1].name
         handler = getattr(self, '%s_distance' % distribution)
         handler(hparams[float_name][0], vect, node, float_name)

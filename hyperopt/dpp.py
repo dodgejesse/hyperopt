@@ -23,6 +23,7 @@ from discretized_distance import Compute_Dist
 import dpp_sample_compiled_matlab
 import time
 import sys
+import scipy.spatial
 
 
 def get_num_quantiles(node):
@@ -79,29 +80,40 @@ def check_sampled_points_more_diverse(L,max_L,min_L, distance_calc, d_space,k):
     print('dpp_avg: {}'.format(dpp_avg))
     print('rand_avg: {}'.format(rand_avg))
 
-def generate_L_from_vectors(vectors, hamming_distance):
-    if not hamming_distance:
-        L = np.dot(vectors, np.transpose(vectors))
-        # make it more symmetric
-        L_sym = (np.transpose(L)+L)*(1.0/2)
-        #this adds a eps*I to L anyway, just to make double sure it's psd
-        L_prime = L_sym + np.identity(len(L_sym))*(np.power(10.0,-14))
 
-    else:
-        L = (vectors[:, None, :] == vectors).sum(2)
-        # to linearly rescale from [min,max] to [a,b]:
-        # f(x) = ((b-a)(x-min))/(max-min)+a
-        #      = (x) (b-a)/(max-min)-(b-a)(min)/(max-min)+a
-        ma = len(vectors[0])*1.0
-        mi = 1*1.0
-        a = -1*1.0
-        b = 1*1.0
-        mult = (b-a)/(ma-mi)
-        add = -(b-a)*(mi)/(ma-mi)+a
-        L_scaled = np.multiply(L, mult)
-        L_prime = L_scaled + add
+# to linearly rescale matrix X from [min,max] to [a,b]:
+# f(x) = ((b-a)(x-min))/(max-min)+a
+#      = (x) (b-a)/(max-min)-(b-a)(min)/(max-min)+a
+def scale_and_shift(mi, ma, a, b, X):
+    mult = (b-a)/(ma-mi)
+    add = -(b-a)*(mi)/(ma-mi)+a
+    X_scaled = np.multiply(X, mult)
+    X_prime = X_scaled + add
+    return X_prime
 
-    return L_prime
+
+def generate_L_from_vectors(vectors, distance):
+    dist_map = {"cos":"cosine", "l2":"euclidean", "ham":"hamming"}
+    for dist in dist_map:
+        dists = scipy.spatial.distance.squareform(scipy.spatial.distance.pdist(vectors,dist_map[dist]))
+        if dist != 'l2':
+            unscaled = 1-dists
+            print("unscaled {} matrix rank: {}".format(dist, np.linalg.matrix_rank(unscaled)))
+        L = 1 - scale_and_shift(np.min(dists), np.max(dists), 0, 1, dists)
+        print("scaled_and_shifted(0,1) {} matrix rank: {}".format(dist,np.linalg.matrix_rank(L)))
+        L = -1 * scale_and_shift(np.min(dists), np.max(dists), -1, 1, dists)
+        print("scaled_and_shifted(-1,1) {} matrix rank: {}".format(dist,np.linalg.matrix_rank(L)))
+            
+
+    dists = scipy.spatial.distance.squareform(scipy.spatial.distance.pdist(vectors,dist_map[distance]))
+    L = 1 - scale_and_shift(np.min(dists), np.max(dists), 0, 1, dists)
+    
+    # to make it symmetric and to make it more likely to be psd
+    #L_sym = (np.transpose(L)+L)*(1.0/2)
+    #L_prime = L_sym + np.identity(len(L_sym))*(np.power(10.0,-14))
+
+
+    return L
     
 
 
@@ -126,9 +138,59 @@ def output_format(vals, new_id, domain, trials):
     rval = trials.new_trial_docs([new_id], [None], [new_result], [new_misc])
     return rval
 
+def construct_L_debug(num_points):
+    step_size = 1.0/(num_points-1)
+    L_debug = []
+    for i in range(num_points):
+        cur_row = []
+        for j in range(num_points):
+            cur_row.append(1-abs(step_size*(i-j)))
+        L_debug.append(cur_row)
+        
+    items = []
+    for i in range(num_points):
+        items.append(i)
+    return items, np.asarray(L_debug)
+    
+
+def debug_mcmc(d_space, L):
+    np.set_printoptions(linewidth=20000)
+    import dpp_mcmc_sampler
+
+    items, L_debug = construct_L_debug(10)
+    
+    #things = dpp_mcmc_sampler.sample_k(items, L_debug, 3)
+
+
+    items, L_debug = construct_L_debug(4080)
+    #dpp_mcmc_sampler.sample_k(items, L, 3)
+    #dpp_mcmc_sampler.sample_k(items, L, 4)
+
+
+    
+    dpp_mcmc_sampler.sample_k(items, L, 7)
+
+
+
+    import pdb; pdb.set_trace()
+    #L_small = np.array([[1,.6,.3],[.6,1,.6],[.3,.6,1]])
+    #items = ['1','2','3']
+
+    #things = dpp_mcmc_sampler.sample_k(items, L_small, 2)
+    
+    #L_s = np.array([[1,.9,.8,.7],[.9,1,.9,.8],[.8,.9,1,.9],[.7,.8,.9,1]])
+    #items = ['1','2','3','4']
+
+    
+    
+    #things = dpp_mcmc_sampler.sample_k(items, L_s, 2)
+
+
+    #things = dpp_mcmc_sampler.sample_k(d_space, L, 5)
+
 
 def suggest(new_ids, domain, trials, seed, *args, **kwargs):
-    #import pdb; pdb.set_trace()
+    import pdb; pdb.set_trace()
 
     #if first time through, sample set of hparams
     if new_ids[0] == 0:
@@ -136,11 +198,20 @@ def suggest(new_ids, domain, trials, seed, *args, **kwargs):
         d_space = discretizer.discretize_space(domain)
 
         make_vect = Make_Vector(domain.expr)
-        
-        hamming_distance=trials.dpp_ham
-        vectors = np.asarray(make_vect.make_vectors(d_space, hamming_distance))
 
-        L = generate_L_from_vectors(vectors, hamming_distance)
+
+        distance = trials.dpp_dist
+        vectors = np.asarray(make_vect.make_vectors(d_space, distance))
+
+        L = generate_L_from_vectors(vectors, distance)
+
+
+        debug_mcmc(d_space, L)
+
+
+
+
+
         
         check_diversity = False
         if check_diversity:

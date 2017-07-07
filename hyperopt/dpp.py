@@ -94,16 +94,18 @@ def scale_and_shift(mi, ma, a, b, X):
 
 def generate_L_from_vectors(vectors, distance):
     dist_map = {"cos":"cosine", "l2":"euclidean", "ham":"hamming"}
-    for dist in dist_map:
-        dists = scipy.spatial.distance.squareform(scipy.spatial.distance.pdist(vectors,dist_map[dist]))
-        if dist != 'l2':
-            unscaled = 1-dists
-            print("unscaled {} matrix rank: {}".format(dist, np.linalg.matrix_rank(unscaled)))
-        L = 1 - scale_and_shift(np.min(dists), np.max(dists), 0, 1, dists)
-        print("scaled_and_shifted(0,1) {} matrix rank: {}".format(dist,np.linalg.matrix_rank(L)))
-        L = -1 * scale_and_shift(np.min(dists), np.max(dists), -1, 1, dists)
-        print("scaled_and_shifted(-1,1) {} matrix rank: {}".format(dist,np.linalg.matrix_rank(L)))
-            
+    debug_dists = False
+    if debug_dists:
+        for dist in dist_map:
+            dists = scipy.spatial.distance.squareform(scipy.spatial.distance.pdist(vectors,dist_map[dist]))
+            if dist != 'l2':
+                unscaled = 1-dists
+                print("unscaled {} matrix rank: {}".format(dist, np.linalg.matrix_rank(unscaled)))
+            L = 1 - scale_and_shift(np.min(dists), np.max(dists), 0, 1, dists)
+            print("scaled_and_shifted(0,1) {} matrix rank: {}".format(dist,np.linalg.matrix_rank(L)))
+            L = -1 * scale_and_shift(np.min(dists), np.max(dists), -1, 1, dists)
+            print("scaled_and_shifted(-1,1) {} matrix rank: {}".format(dist,np.linalg.matrix_rank(L)))
+    
 
     dists = scipy.spatial.distance.squareform(scipy.spatial.distance.pdist(vectors,dist_map[distance]))
     L = 1 - scale_and_shift(np.min(dists), np.max(dists), 0, 1, dists)
@@ -190,7 +192,7 @@ def debug_mcmc(d_space, L):
 
 
 def suggest(new_ids, domain, trials, seed, *args, **kwargs):
-    import pdb; pdb.set_trace()
+    #import pdb; pdb.set_trace()
 
     #if first time through, sample set of hparams
     if new_ids[0] == 0:
@@ -206,7 +208,7 @@ def suggest(new_ids, domain, trials, seed, *args, **kwargs):
         L = generate_L_from_vectors(vectors, distance)
 
 
-        debug_mcmc(d_space, L)
+        #debug_mcmc(d_space, L)
 
 
 

@@ -12,66 +12,6 @@ on  (Fast Determinantal Point Process Sampling with
      Application to Clustering, Byungkon Kang, NIPS 2013)
 """
 
-def build_sim_mtx_from_vectors(vectors):
-    L = np.zeros((len(vectors), len(vectors)))
-    for i in range(len(vectors)):
-        L[i] = np.asarray([np.inner(vectors[i], x) for x in vectors])
-    return L
-        
-
-def build_norm_similary_matrix(cov_function, items):
-    """
-    same as build_similary_matrix, but keeps track of max and min
-    then normalizes elements of L to be in [-1,1]
-    """
-    max_L = float('-inf')
-    min_L = float('inf')
-    L = np.zeros((len(items), len(items)))
-    for i in range(len(items)):
-        for j in range(i, len(items)):
-            L[i, j] = cov_function(items[i], items[j])
-            L[j, i] = L[i, j]
-            if L[i, j] < min_L:
-                min_L = L[i, j]
-            if L[i, j] > max_L:
-                max_L = L[i, j]
-            
-            if (i*len(items) + j) % 1000 == 0:
-                tmp1 = i*len(items) + j
-                tmp2 = len(items)*len(items)
-                tmp3 = 100.0*tmp1/tmp2
-                print('finished iteration {} out of {} ({:.4} done). i={},j={}'.format(tmp1,
-                                                                            tmp2,
-                                                                                       tmp3,i,j))
-
-    for i in range(len(items)):
-        for j in range(len(items)):
-            L[i, j] = 2*(L[i, j]-min_L)/(max_L-min_L)-1
-    return L, max_L, min_L
-    
-
-def build_similary_matrix(cov_function, items):
-    """
-    build the similarity matrix from a covariance function
-    cov_function and a set of items. each pair of items
-    is given to cov_function, which computes the similarity
-    between two items.
-    """
-    L = np.zeros((len(items), len(items)))
-    for i in range(len(items)):
-        for j in range(i, len(items)):
-            L[i, j] = cov_function(items[i], items[j])
-            L[j, i] = L[i, j]
-    return L
-
-
-def exp_quadratic(sigma):
-    """
-    exponential quadratic covariance function
-    """
-    def f(p1, p2):
-        return np.exp(-0.5 * (((p1 - p2)**2).sum()) / sigma**2)
-    return f
 
 
 def sample(items, L, max_nb_iterations=1000, rng=np.random):
@@ -131,7 +71,34 @@ def sample(items, L, max_nb_iterations=1000, rng=np.random):
     return np.array(items)[Y]
 
 
-def sample_k(items, L, k, max_nb_iterations=1000, rng=np.random, test_mix=False):
+def print_unif_samps_dets(L, k, num_samps, rng):
+    """
+    prints the determinants of num_samps uniform samples
+    """
+    dets = []
+    for i in range(num_samps):
+        initial = rng.choice(range(len(L)), size=k, replace=False)
+        X = [False] * len(L)
+        for j in initial:
+            X[j] = True
+        X = np.array(X)
+        L_Y_cur = L[X,:]
+        L_Y_cur = L_Y_cur[:,X]
+        dets.append(np.linalg.det(L_Y_cur))
+    print("about to sort determinants...")
+    sorted_dets = np.sort(dets)
+    print(sorted_dets[1:500])
+    print(sorted_dets[len(sorted_dets)-500:len(sorted_dets)-1])
+    print('avg: {}'.format(np.average(dets)))
+     
+# returns the determinant of the submatrix of L defined by X
+def det_X(X,L):
+    L_Y_cur = L[X,:]
+    L_Y_cur = L_Y_cur[:,X]
+    return np.linalg.det(L_Y_cur)
+    
+
+def sample_k(items, L, k, max_nb_iterations=None, rng=np.random, test_mix=False):
     """
     Sample a list of k items from a DPP defined
     by the similarity matrix L. The algorithm
@@ -140,24 +107,48 @@ def sample_k(items, L, k, max_nb_iterations=1000, rng=np.random, test_mix=False)
     (Fast Determinantal Point Process Sampling with
     Application to Clustering, Byungkon Kang, NIPS 2013)
     """
-
-
-
+    print_debug = False
+    if max_nb_iterations is None:
+        import math
+        max_nb_iterations = 2*int(len(L)*math.log(len(L)))
+    
 
     initial = rng.choice(range(len(items)), size=k, replace=False)
 
     #import pdb; pdb.set_trace()
-
+    #print_unif_samps_dets(L, k, max_nb_iterations, rng)
+    
     X = [False] * len(items)
     for i in initial:
         X[i] = True
     X = np.array(X)
-    numerator_counter = 0
-    denom_counter = 0
-    num_neg_counter = 0
-    denom_neg_counter = 0
-    p_neg_counter = 0
-    both_neg_counter = 0
+
+    # if Y has very close to zero determinant, resample it
+    num_Y_resampled = 0
+    tolerance = 10**-100
+    while det_X(X, L) < tolerance:
+        initial = rng.choice(range(len(items)), size=k, replace=False)
+        X = [False] * len(items)
+        for i in initial:
+            X[i] = True
+        X = np.array(X)
+        num_Y_resampled += 1
+        if num_Y_resampled > (1.0/2)*len(L):
+            print("We've tried to sample Y such that L_Y is invertible (has det(L_Y) > 0)" + 
+                  " but after {} samples we didn't find any with det(L_Y) > {}.".format(
+                      (1.0/2)*len(L),tolerance))
+            raise ZeroDivisionError("The matrix L is likely low rank => det(L_Y) = 0.")
+
+    if print_debug:
+        numerator_counter = 0
+        denom_counter = 0
+        num_neg_counter = 0
+        denom_neg_counter = 0
+        p_neg_counter = 0
+        both_neg_counter = 0
+        
+    steps_taken = 0
+    num_Y_not_invert = 0
     for i in range(max_nb_iterations):
         u = rng.choice(np.arange(len(items))[X])
         v = rng.choice(np.arange(len(items))[~X])
@@ -166,24 +157,26 @@ def sample_k(items, L, k, max_nb_iterations=1000, rng=np.random, test_mix=False)
         L_Y = L[Y, :]
         L_Y = L_Y[:, Y]
 
-
         # to check determinants
-        Y_cur = X.copy()
-        L_Y_cur = L[Y_cur,:]
-        L_Y_cur = L_Y_cur[:,Y_cur]
+        if print_debug:
+            Y_cur = X.copy()
+            L_Y_cur = L[Y_cur,:]
+            L_Y_cur = L_Y_cur[:,Y_cur]
+            
+            Y_next = X.copy()
+            Y_next[u] = False
+            Y_next[v] = True
+            L_Y_next = L[Y_next,:]
+            L_Y_next = L_Y_next[:,Y_next]
 
-        Y_next = X.copy()
-        Y_next[u] = False
-        Y_next[v] = True
-        L_Y_next = L[Y_next,:]
-        L_Y_next = L_Y_next[:,Y_next]
-
-
+                  
         try:
             L_Y_inv = np.linalg.inv(L_Y)
         except:
-            import pdb; pdb.set_trace()
-        L_Y_inv = np.linalg.inv(L_Y)
+            num_Y_not_invert += 1
+            continue
+            #import pdb; pdb.set_trace()
+
 
         c_v = L[v:v+1, :]
         c_v = c_v[:, v:v+1]
@@ -195,89 +188,113 @@ def sample_k(items, L, k, max_nb_iterations=1000, rng=np.random, test_mix=False)
         b_u = b_u[:, u:u+1]
 
 
-        
-
-        numerator = c_v - np.dot(np.dot(b_v.T, L_Y_inv), b_v)
+        numerator = c_v - np.dot(np.dot(b_v.T, L_Y_inv.T), b_v)
         denom = c_u - np.dot(np.dot(b_u.T, L_Y_inv.T), b_u)
 
-        if numerator < 0 and denom > 0:
-            num_neg_counter += 1
-        if numerator < 10**-9:
-            numerator_counter += 1
-        if denom < 0 and numerator > 0:
-            denom_neg_counter += 1
-        if denom < 10**-9:
-            denom_counter += 1
+        if print_debug:
+            if numerator < 0 and denom > 0:
+                num_neg_counter += 1
+            if numerator < 10**-9:
+                numerator_counter += 1
+            if denom < 0 and numerator > 0:
+                denom_neg_counter += 1
+            if denom < 10**-9:
+                denom_counter += 1
         
-        if numerator < 0 and denom < 0:
-            both_neg_counter += 1
+            if numerator < 0 and denom < 0:
+                both_neg_counter += 1
 
 
         p = min(1,  numerator/denom)
-        print numerator, denom, p
-        #print p, p < 0
-        if p < 0:
-            print p, u, v, [i for i, b_var in enumerate(Y) if b_var]
-            import pdb; pdb.set_trace()
+        
+        # to print if we have some problems with small or zero determinants / eigenvalues
+        if print_debug:
+            if numerator < 0 or denom < 0 or p < 0:
+                print i, p, numerator, denom#u, v, [j for j, b_var in enumerate(Y) if b_var]
+                print("{}\t->\t{}".format(np.linalg.det(L_Y_cur), np.linalg.det(L_Y_next)))
+                print("steps taken so far: {}, {}%".format(steps_taken, round(100.0*steps_taken/i,3)))
+                #import pdb; pdb.set_trace()
 
         if rng.uniform() <= p:
+            steps_taken += 1
             X = Y[:]
             X[v] = True
+            
+            if print_debug:
+                
+                print("{}\t->\t{}".format(np.linalg.det(L_Y_cur),np.linalg.det(L_Y_next)))
 
-    
+    if print_debug:
+        print("num numerators that would be rounded to zero: {}".format(numerator_counter))
+        print("num denoms that would be rounded to zero: {}".format(denom_counter))
+        print("num_neg_counter: {}".format(num_neg_counter))
+        print("denom_neg_counter: {}".format(denom_neg_counter))
+        print("both_neg_counter: {}".format(both_neg_counter))
+        print("steps taken: {}".format(steps_taken))
+        
 
-    print("num numerators that would be rounded to zero: {}".format(numerator_counter))
-    print("num denoms that would be rounded to zero: {}".format(denom_counter))
-    print("num_neg_counter: {}".format(num_neg_counter))
-    print("denom_neg_counter: {}".format(denom_neg_counter))
-    print("both_neg_counter: {}".format(both_neg_counter))
+    if num_Y_not_invert > .5 * max_nb_iterations:
+        print("We've tried to sample Y such that L_Y is invertible (has det(L_Y) > 0)" + 
+              " but after {} potential mcmc steps, we found L_Y not invertible {} times.".format(
+                  .5 * max_nb_iterations, num_Y_not_invert))
+        raise ZeroDivisionError("The matrix L is likely low rank => det(L_Y) = 0.")
+
+    if steps_taken == 0:
+        print("We ran the MCMC algorithm for {} steps, but it never accepted a metropolis-hastings " + 
+              "proposal, so this is just a uniform sample.".format(steps_taken))
+        raise ZeroDivisionError("It's likely the matrix L is bad. The MCMC algorithm failed.")
+
+    print("{} steps taken by mcmc algorithm, out of {} possible steps. {}%".format(steps_taken, 
+                                    max_nb_iterations, 100.0*steps_taken/max_nb_iterations))
     return np.array(items)[X]
 
 
-def test():
-    x = np.arange(1, 100)
-    L = build_similary_matrix(exp_quadratic(sigma=0.1),
-                              x)
-    for i in range(10):
-        #print(sample_k(x, L, 10))
-        print(sample(x, L))
-
-def abs_dist():
-    def f(p1, p2):
-        return abs(max(p1,p2)-min(p1,p2))
-    return f
-
-def test_k_dpp(n, k):
-
-    if n < k:
-        return "n < k, which is bad"
-    x = np.arange(0, n)
-    L,max_L,min_L = build_norm_similary_matrix(abs_dist(),x)
-
-    import dpp
-    dpp.check_sampled_points_more_diverse(L,max_L, min_L, abs_dist(), x,k)
 
 
-if __name__ == "__main__":
-    import matplotlib.pyplot as plt
-    #test()
-    #sys.exit(0)
-    x = np.arange(0, 1, 0.01)
-    y = np.arange(0, 1, 0.01)
-    z = np.array(list(product(x, y)))
-    sigmas = [0.0001, 0.1, 1, 2, 10]
-    k = 1
-    for sigma in sigmas:
-        plt.subplot(1, len(sigmas) + 1, k)
-        L = build_similary_matrix(exp_quadratic(sigma=sigma), z)
-        selected_by_dpp = sample(z, L)
-        plt.scatter(selected_by_dpp[:, 0], selected_by_dpp[:, 1])
-        plt.title("DPP(sigma={0})".format(sigma))
-        k += 1
 
-    plt.subplot(1, len(sigmas) + 1, k)
-    selected_by_random = z[np.random.choice((True, False),
-                           size=len(z))]
-    plt.scatter(selected_by_random[:, 0], selected_by_random[:, 1])
-    plt.title("random")
-    plt.show()
+# taken from dpp.py. it's for debugging.
+def construct_L_debug(num_points):
+    step_size = 1.0/(num_points-1)
+    L_debug = []
+    for i in range(num_points):
+        cur_row = []
+        for j in range(num_points):
+            cur_row.append(1-abs(step_size*(i-j)))
+        L_debug.append(cur_row)
+        
+    items = []
+    for i in range(num_points):
+        items.append(i)
+    return items, np.asarray(L_debug)
+    
+
+
+# this was taken from dpp.py. it's for debugging
+def debug_mcmc(d_space, L):
+    np.set_printoptions(linewidth=20000)
+    import dpp_mcmc_sampler
+
+    items, L_debug = construct_L_debug(10)
+    
+    #things = dpp_mcmc_sampler.sample_k(items, L_debug, 3)
+
+
+    items, L_debug = construct_L_debug(4080)
+    #dpp_mcmc_sampler.sample_k(items, L, 3)
+    #dpp_mcmc_sampler.sample_k(items, L, 4)
+    dpp_mcmc_sampler.sample_k(items, L, 7)
+    import pdb; pdb.set_trace()
+    #L_small = np.array([[1,.6,.3],[.6,1,.6],[.3,.6,1]])
+    #items = ['1','2','3']
+
+    #things = dpp_mcmc_sampler.sample_k(items, L_small, 2)
+    
+    #L_s = np.array([[1,.9,.8,.7],[.9,1,.9,.8],[.8,.9,1,.9],[.7,.8,.9,1]])
+    #items = ['1','2','3','4']
+
+    
+    
+    #things = dpp_mcmc_sampler.sample_k(items, L_s, 2)
+
+
+    #things = dpp_mcmc_sampler.sample_k(d_space, L, 5)

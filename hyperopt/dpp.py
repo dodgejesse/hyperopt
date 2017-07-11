@@ -57,28 +57,60 @@ def avg_dist_of_set(sampled_items, distance_calc, max_L, min_L):
 
 
 
-def check_sampled_points_more_diverse(L,max_L,min_L, distance_calc, d_space,k):
+def check_sampled_points_more_diverse(L, distance, vectors, d_space, k):
+    import dpp_mcmc_sampler
+    dist_map = {"cos":"cosine", "l2":"euclidean", "ham":"hamming"}
     set_size = k
     dpp_avg = 0
+    mcmc_avg = 0
     rand_avg = 0
     num_sets = 2500
+
+    exact = False
+    if exact:
+        # DEBUG to make it go faster
+        import DPP_Sampler
+        import matlab
+        dpp_samp = DPP_Sampler.initialize()
+        L_list = np.ndarray.tolist(L)
+        L_mat = matlab.double(L_list)
+        L_decomp = dpp_samp.decompose_kernel(L_mat)
+
     for i in range(num_sets):
+        # OLD METHOD:
         #this next line is how we call the mcmc algorithm
         #dpp_sampled_items = dpp_sampler.sample_k(d_space, L, set_size, max_nb_iterations = 10000)
-        dpp_sampled_indices = dpp_sampler.dpp.sample_dpp(L, k)
-        dpp_sampled_items = [d_space[index] for index in dpp_sampled_indices]
-        cur_dpp_avg = avg_dist_of_set(dpp_sampled_items, distance_calc, max_L, min_L)
+        #dpp_sampled_indices = dpp_sampler.dpp.sample_dpp(L, k)
+        #dpp_sampled_items = [d_space[index] for index in dpp_sampled_indices]
+        #cur_dpp_avg = avg_dist_of_set(dpp_sampled_items, distance_calc, max_L, min_L)
+
+        import pdb; pdb.set_trace()
         
-        dpp_avg = (dpp_avg * i + cur_dpp_avg)/(i+1)
+        mcmc_sampled_indices = dpp_mcmc_sampler.sample_k(range(len(L)), L, set_size)
+        cur_mcmc_avg = np.average(scipy.spatial.distance.pdist(vectors[mcmc_sampled_indices],dist_map[distance]))
+        mcmc_avg = (mcmc_avg * i + cur_mcmc_avg)/(i+1)
         
-        
-        rand_sampled_items = random.sample(d_space, set_size)
-        cur_rand_avg = avg_dist_of_set(rand_sampled_items, distance_calc, max_L, min_L)
+
+        rand_sampled_indices = random.sample(range(len(d_space)), set_size)
+        cur_rand_avg = np.average(scipy.spatial.distance.pdist(vectors[rand_sampled_indices],dist_map[distance]))
         rand_avg = (rand_avg * i + cur_rand_avg)/(i+1)
-        print('iter {}: {}, {}'.format(i,rand_avg, dpp_avg))
-        
-    print('dpp_avg: {}'.format(dpp_avg))
+
+        if exact:
+            dpp_sampled_indices_matlab = dpp_samp.sample_dpp(L_decomp,random.randint(1,999999),set_size)
+            dpp_sampled_indices = [int(index[0])-1 for index in dpp_sampled_indices_matlab]
+            cur_dpp_avg = np.average(scipy.spatial.distance.pdist(vectors[dpp_sampled_indices],dist_map[distance]))
+            dpp_avg = (dpp_avg * i + cur_dpp_avg)/(i+1)
+
+
+
+        print('iter {}: {}, {}, {}'.format(i,rand_avg, mcmc_avg, dpp_avg))
+    if exact:
+        dpp_samp.terminate()        
     print('rand_avg: {}'.format(rand_avg))
+    print('mcmc_avg: {}'.format(mcmc_avg))
+    print('dpp_avg: {}'.format(dpp_avg))
+
+    
 
 
 # to linearly rescale matrix X from [min,max] to [a,b]:
@@ -140,109 +172,45 @@ def output_format(vals, new_id, domain, trials):
     rval = trials.new_trial_docs([new_id], [None], [new_result], [new_misc])
     return rval
 
-def construct_L_debug(num_points):
-    step_size = 1.0/(num_points-1)
-    L_debug = []
-    for i in range(num_points):
-        cur_row = []
-        for j in range(num_points):
-            cur_row.append(1-abs(step_size*(i-j)))
-        L_debug.append(cur_row)
+
+def sample_discrete_dpp(trials, domain, seed):
+    discretizer = Discretizer(trials.discretize_num)
+    d_space = discretizer.discretize_space(domain)
+
+    make_vect = Make_Vector(domain.expr)
+
+    distance = trials.dpp_dist
+    vectors = np.asarray(make_vect.make_vectors(d_space, distance))
+
+    L = generate_L_from_vectors(vectors, distance)
+
+    check_diversity = True
+    if check_diversity:
+        check_sampled_points_more_diverse(L, distance, vectors, d_space, trials.max_evals)
         
-    items = []
-    for i in range(num_points):
-        items.append(i)
-    return items, np.asarray(L_debug)
-    
 
-def debug_mcmc(d_space, L):
-    np.set_printoptions(linewidth=20000)
-    import dpp_mcmc_sampler
+    start_sample_time = time.time()
+    dpp_sampled_indices = dpp_sample_compiled_matlab.sample_dpp(L, seed, trials.max_evals)
+    print("sampling {} items from a DPP of size {} took {} seconds".format(trials.max_evals, 
+                    len(L), time.time() - start_sample_time))
 
-    items, L_debug = construct_L_debug(10)
-    
-    #things = dpp_mcmc_sampler.sample_k(items, L_debug, 3)
-
-
-    items, L_debug = construct_L_debug(4080)
-    #dpp_mcmc_sampler.sample_k(items, L, 3)
-    #dpp_mcmc_sampler.sample_k(items, L, 4)
-
-
-    
-    dpp_mcmc_sampler.sample_k(items, L, 7)
-
-
-
-    import pdb; pdb.set_trace()
-    #L_small = np.array([[1,.6,.3],[.6,1,.6],[.3,.6,1]])
-    #items = ['1','2','3']
-
-    #things = dpp_mcmc_sampler.sample_k(items, L_small, 2)
-    
-    #L_s = np.array([[1,.9,.8,.7],[.9,1,.9,.8],[.8,.9,1,.9],[.7,.8,.9,1]])
-    #items = ['1','2','3','4']
-
-    
-    
-    #things = dpp_mcmc_sampler.sample_k(items, L_s, 2)
-
-
-    #things = dpp_mcmc_sampler.sample_k(d_space, L, 5)
-
+    return [d_space[int(index[0])-1] for index in dpp_sampled_indices]
+        
+def sample_continuous_dpp():
+    # call the mcmc algorithm
+    return stuff
 
 def suggest(new_ids, domain, trials, seed, *args, **kwargs):
-    #import pdb; pdb.set_trace()
+    import pdb; pdb.set_trace()
 
     #if first time through, sample set of hparams
     if new_ids[0] == 0:
-        discretizer = Discretizer(trials.discretize_num)
-        d_space = discretizer.discretize_space(domain)
-
-        make_vect = Make_Vector(domain.expr)
-
-
-        distance = trials.dpp_dist
-        vectors = np.asarray(make_vect.make_vectors(d_space, distance))
-
-        L = generate_L_from_vectors(vectors, distance)
-
-
-        #debug_mcmc(d_space, L)
-
-
-
-
+        if trials.discretize_space:
+            trials.dpp_sampled_points = sample_discrete_dpp(trials, domain, seed)
+        else:
+            trials.dpp_sampled_points = sample_continuous_dpp(trials, domain, seed)
 
         
-        check_diversity = False
-        if check_diversity:
-            distance_calc = Compute_Dist(domain.expr)
-            check_sampled_points_more_diverse(L, None, None, distance_calc.compute_distance, d_space, 5)
-        
-        print_dpp_samples = False
-        if print_dpp_samples:
-            print("ABOUT TO START PRINTING DPP SAMPLES")
-            print("")
-            for i in range(100):
-                dpp_sampled_indices = dpp_sample_compiled_matlab.sample_dpp(L, np.random.randint(seed), trials.max_evals)
-                points = []
-                for index in dpp_sampled_indices:
-                    points.append(d_space[int(index[0])-1])
-                    points[len(points)-1]['index'] = int(index[0]-1)
-                
-                for thing in points:
-                    print thing
-                print("")
-            sys.exit(0)
-
-        start_sample_time = time.time()
-        dpp_sampled_indices = dpp_sample_compiled_matlab.sample_dpp(L, seed, trials.max_evals)
-        print("sampling {} items from a DPP of size {} took {} seconds".format(trials.max_evals, 
-                            len(L), time.time() - start_sample_time))
-
-        
-        trials.dpp_sampled_points = [d_space[int(index[0])-1] for index in dpp_sampled_indices]
         print("The hyperparameter settings that will be evaluated:")
         for thing in trials.dpp_sampled_points:
             print thing

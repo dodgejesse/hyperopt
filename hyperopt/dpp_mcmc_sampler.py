@@ -6,6 +6,7 @@ DEBUGGING
 
 import numpy as np
 from itertools import product
+import pyll.stochastic
 """
 Determinantal point process sampling procedures based
 on  (Fast Determinantal Point Process Sampling with
@@ -96,7 +97,25 @@ def det_X(X,L):
     L_Y_cur = L[X,:]
     L_Y_cur = L_Y_cur[:,X]
     return np.linalg.det(L_Y_cur)
-    
+
+
+
+def sample_discrete_L(L,k,rng,items):
+    initial = rng.choice(range(len(items)), size=k, replace=False)
+    X = [False] * len(items)
+    for i in initial:
+        X[i] = True
+    X = np.array(X)
+    return X
+
+# takes L, which is an expr
+# returns a set of feature vectors, B_Y
+def sample_continuous_L(L,k):
+    hparam_points = []
+    for i in range(k):
+        hparam_points.append(pyll.stochastic.sample(domain.expr))
+        
+    L['expr']
 
 def sample_k(items, L, k, max_nb_iterations=None, rng=np.random, test_mix=False):
     """
@@ -107,21 +126,21 @@ def sample_k(items, L, k, max_nb_iterations=None, rng=np.random, test_mix=False)
     (Fast Determinantal Point Process Sampling with
     Application to Clustering, Byungkon Kang, NIPS 2013)
     """
+    #import pdb; pdb.set_trace()
+    # if L is infinite (some dims of the space are continuous)
+    sample_continuous = type(L) == type({})
+
     print_debug = False
+
     if max_nb_iterations is None:
         import math
         max_nb_iterations = 2*int(len(L)*math.log(len(L)))
     
+    if not sample_continuous:        
+        X = sample_discrete_L(L,k,rng,items)
+    else:
+        initial = sample_continuous_L(L,k)
 
-    initial = rng.choice(range(len(items)), size=k, replace=False)
-
-    #import pdb; pdb.set_trace()
-    #print_unif_samps_dets(L, k, max_nb_iterations, rng)
-    
-    X = [False] * len(items)
-    for i in initial:
-        X[i] = True
-    X = np.array(X)
 
     # if Y has very close to zero determinant, resample it
     num_Y_resampled = 0

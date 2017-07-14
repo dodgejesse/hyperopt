@@ -24,6 +24,7 @@ import dpp_sample_compiled_matlab
 import time
 import sys
 import scipy.spatial
+import dpp_mcmc_sampler
 
 
 def get_num_quantiles(node):
@@ -58,7 +59,6 @@ def avg_dist_of_set(sampled_items, distance_calc, max_L, min_L):
 
 
 def check_sampled_points_more_diverse(L, distance, vectors, d_space, k):
-    import dpp_mcmc_sampler
     dist_map = {"cos":"cosine", "l2":"euclidean", "ham":"hamming"}
     set_size = k
     dpp_avg = 0
@@ -77,12 +77,6 @@ def check_sampled_points_more_diverse(L, distance, vectors, d_space, k):
         L_decomp = dpp_samp.decompose_kernel(L_mat)
 
     for i in range(num_sets):
-        # OLD METHOD:
-        #this next line is how we call the mcmc algorithm
-        #dpp_sampled_items = dpp_sampler.sample_k(d_space, L, set_size, max_nb_iterations = 10000)
-        #dpp_sampled_indices = dpp_sampler.dpp.sample_dpp(L, k)
-        #dpp_sampled_items = [d_space[index] for index in dpp_sampled_indices]
-        #cur_dpp_avg = avg_dist_of_set(dpp_sampled_items, distance_calc, max_L, min_L)
 
         import pdb; pdb.set_trace()
         
@@ -184,24 +178,27 @@ def sample_discrete_dpp(trials, domain, seed):
 
     L = generate_L_from_vectors(vectors, distance)
 
-    check_diversity = True
+    check_diversity = False
     if check_diversity:
         check_sampled_points_more_diverse(L, distance, vectors, d_space, trials.max_evals)
         
 
     start_sample_time = time.time()
-    dpp_sampled_indices = dpp_sample_compiled_matlab.sample_dpp(L, seed, trials.max_evals)
+    dpp_sampled_indices = dpp_mcmc_sampler.sample_k(range(len(L)), L, trials.max_evals)
+    #dpp_sampled_indices = dpp_sample_compiled_matlab.sample_dpp(L, seed, trials.max_evals)
     print("sampling {} items from a DPP of size {} took {} seconds".format(trials.max_evals, 
                     len(L), time.time() - start_sample_time))
 
-    return [d_space[int(index[0])-1] for index in dpp_sampled_indices]
-        
-def sample_continuous_dpp():
-    # call the mcmc algorithm
+    return [d_space[int(index)] for index in dpp_sampled_indices]
+
+# call the mcmc algorithm        
+def sample_continuous_dpp(trials, domain, seed):
+    
+    
     return stuff
 
 def suggest(new_ids, domain, trials, seed, *args, **kwargs):
-    import pdb; pdb.set_trace()
+    #import pdb; pdb.set_trace()
 
     #if first time through, sample set of hparams
     if new_ids[0] == 0:

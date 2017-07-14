@@ -84,7 +84,7 @@ class Discretizer():
         length_of_switch = len(node.pos_args)-1
         if not enter_vals:
             hp_out[switch_name] = []
-            for i in range(1, length_of_switch):
+            for i in range(0, length_of_switch):
                 self.increment_node(node.pos_args[i+1], hp_out, False)
             return False
         if switch_name not in hp_out or hp_out[switch_name] == []:

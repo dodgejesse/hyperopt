@@ -134,7 +134,7 @@ def sample_k(items, L, k, max_nb_iterations=None, rng=np.random, test_mix=False)
 
     if max_nb_iterations is None:
         import math
-        max_nb_iterations = 2*int(len(L)*math.log(len(L)))
+        max_nb_iterations = 5*int(len(L)*math.log(len(L)))
     
     if not sample_continuous:        
         X = sample_discrete_L(L,k,rng,items)
@@ -169,6 +169,7 @@ def sample_k(items, L, k, max_nb_iterations=None, rng=np.random, test_mix=False)
     steps_taken = 0
     num_Y_not_invert = 0
     for i in range(max_nb_iterations):
+        
         u = rng.choice(np.arange(len(items))[X])
         v = rng.choice(np.arange(len(items))[~X])
         Y = X.copy()

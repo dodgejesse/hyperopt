@@ -14,6 +14,7 @@ import pyll
 from .utils import coarse_utcnow
 from . import base
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -204,6 +205,33 @@ class FMinIter(object):
         return self
 
 
+def sample_hparam_space(space, algo, max_evals, dpp_dist='l2',discretize_space=True, discretize_num=0, 
+                        rstate=np.random.RandomState()):
+
+    trials = base.Trials()
+    trials.max_evals = max_evals
+    trials.discretize_space=discretize_space
+    trials.dpp_dist = dpp_dist
+    trials.discretize_num = discretize_num
+
+    # here we're using placeholders for fn and pass_expr_memo_ctrl, since
+    # neither will actually be used.
+    domain = base.Domain(False, space, pass_expr_memo_ctrl=False)
+    algo([0], domain, trials,rstate.randint(2 ** 31 - 1))
+    hparam_sets_to_return = []
+    for hparam_set in trials.hparams_to_try:
+        spec = base.spec_from_misc(hparam_set[0]['misc'])
+        ctrl = base.Ctrl(trials, current_trial=hparam_set[0])
+        
+        memo = domain.memo_from_config(spec)
+        # this doesn't seem to do anything, but it might
+        domain.use_obj_for_literal_in_memo(ctrl, base.Ctrl, memo)
+        
+        hparam_sets_to_return.append(pyll.rec_eval(domain.expr, memo=memo))
+    return hparam_sets_to_return
+    
+
+
 def fmin(fn, space, algo, max_evals, trials=None, rstate=None,
          allow_trials_fmin=True, pass_expr_memo_ctrl=None,
          catch_eval_exceptions=False,
@@ -288,7 +316,7 @@ def fmin(fn, space, algo, max_evals, trials=None, rstate=None,
 
     """
 
-    #import pdb; pdb.set_trace()
+    import pdb; pdb.set_trace()
 
     if rstate is None:
         rstate = np.random.RandomState()

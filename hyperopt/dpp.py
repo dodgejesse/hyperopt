@@ -78,7 +78,7 @@ def check_sampled_points_more_diverse(L, distance, vectors, d_space, k):
 
     for i in range(num_sets):
 
-        import pdb; pdb.set_trace()
+        #import pdb; pdb.set_trace()
         
         mcmc_sampled_indices = dpp_mcmc_sampler.sample_k(range(len(L)), L, set_size)
         cur_mcmc_avg = np.average(scipy.spatial.distance.pdist(vectors[mcmc_sampled_indices],dist_map[distance]))
@@ -203,17 +203,24 @@ def suggest(new_ids, domain, trials, seed, *args, **kwargs):
     #if first time through, sample set of hparams
     if new_ids[0] == 0:
         if trials.discretize_space:
-            trials.dpp_sampled_points = sample_discrete_dpp(trials, domain, seed)
+            hparams_to_try = sample_discrete_dpp(trials, domain, seed)
         else:
-            trials.dpp_sampled_points = sample_continuous_dpp(trials, domain, seed)
+            hparams_to_try = sample_continuous_dpp(trials, domain, seed)
 
         
-        print("The hyperparameter settings that will be evaluated:")
-        for thing in trials.dpp_sampled_points:
+        print("The hyperparameter settings that will be evaluated " + 
+              "(evaluation order will be uniformly sampled):")
+        for thing in hparams_to_try:
             print thing
         print("")
-        random.shuffle(trials.dpp_sampled_points)
-    return output_format(trials.dpp_sampled_points[new_ids[0]], new_ids[0], domain, trials)
+
+        random.shuffle(hparams_to_try)
+        trials.hparams_to_try = []
+        for i in range(len(hparams_to_try)):
+            trials.hparams_to_try.append(output_format(hparams_to_try[i], i, domain, trials))
+
+        
+    return trials.hparams_to_try[new_ids[0]]
 
 
 def time_dpp(domain, trials, num_discrete_steps=11, k=None, print_L_time=False):

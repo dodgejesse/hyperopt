@@ -14,7 +14,6 @@ on  (Fast Determinantal Point Process Sampling with
 """
 
 
-
 def sample(items, L, max_nb_iterations=1000, rng=np.random):
     """
     Sample a list of items from a DPP defined

@@ -111,8 +111,9 @@ def check_sampled_points_more_diverse(L, distance, vectors, d_space, k):
 # f(x) = ((b-a)(x-min))/(max-min)+a
 #      = (x) (b-a)/(max-min)-(b-a)(min)/(max-min)+a
 def scale_and_shift(mi, ma, a, b, X):
-    mult = (b-a)/(ma-mi)
-    add = -(b-a)*(mi)/(ma-mi)+a
+    
+    mult = 1.0*(b-a)/(ma-mi)
+    add = -(b-a)*(mi)*1.0/(ma-mi)+a
     X_scaled = np.multiply(X, mult)
     X_prime = X_scaled + add
     return X_prime
@@ -198,7 +199,18 @@ def sample_continuous_dpp(trials, domain, seed):
     return stuff
 
 def suggest(new_ids, domain, trials, seed, *args, **kwargs):
-    #import pdb; pdb.set_trace()
+
+
+    #DEBUG
+    from unif_hparam_sample import Unif_Sampler
+    unif_sampler = Unif_Sampler(domain.expr)
+    for i in range(10):
+        unif_samp = unif_sampler.draw_unif_samp()
+        print unif_sampler.make_zero_one_vect(unif_samp)
+        print unif_sampler.make_full_hparam_list(unif_samp)
+        print('')
+
+    import pdb; pdb.set_trace()
 
     #if first time through, sample set of hparams
     if new_ids[0] == 0:

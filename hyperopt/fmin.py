@@ -316,7 +316,7 @@ def fmin(fn, space, algo, max_evals, trials=None, rstate=None,
 
     """
 
-    import pdb; pdb.set_trace()
+    #import pdb; pdb.set_trace()
 
     if rstate is None:
         rstate = np.random.RandomState()

@@ -29,6 +29,7 @@ from .fmin import fmin_pass_expr_memo_ctrl
 from .fmin import FMinIter
 from .fmin import partial
 from .fmin import space_eval
+from .fmin import sample_hparam_space
 
 # -- syntactic sugar
 import hp

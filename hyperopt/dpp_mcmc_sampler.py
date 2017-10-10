@@ -100,6 +100,27 @@ def det_X(X,L):
 
 
 
+def get_initial_sample(unif_sampler, k):
+    samples = []
+    for i in range(k):
+        samples.append(unif_sampler.draw_sample())
+
+
+# returns a sample from a DPP defined over a mixed discrete and contiuous space
+# requries something that draws samples uniformly from the space
+# requires something that takes two elements and returns a distance between them 
+def sample_k_disc_and_cont(unif_sampler, dist_comp, k, max_iter):
+
+    init_sample = get_initial_sample(unif_sampler, k)
+    # resample if bad
+    # for max iters:
+    #  propose new sample
+    #  sample within cur sample
+    #  compute p
+    
+
+    
+
 def sample_discrete_L(L,k,rng,items):
     initial = rng.choice(range(len(items)), size=k, replace=False)
     X = [False] * len(items)
@@ -108,16 +129,8 @@ def sample_discrete_L(L,k,rng,items):
     X = np.array(X)
     return X
 
-# takes L, which is an expr
-# returns a set of feature vectors, B_Y
-def sample_continuous_L(L,k):
-    hparam_points = []
-    for i in range(k):
-        hparam_points.append(pyll.stochastic.sample(domain.expr))
-        
-    L['expr']
 
-def sample_k(items, L, k, max_nb_iterations=None, rng=np.random, test_mix=False):
+def sample_k(items, L, k, max_nb_iterations=None, rng=np.random):
     """
     Sample a list of k items from a DPP defined
     by the similarity matrix L. The algorithm

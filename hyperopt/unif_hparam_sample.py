@@ -27,6 +27,19 @@ class Unif_Sampler():
         self.process_node_dists(space, [])
 
 
+    def __call__(self, n):
+        unfeaturized_samples = []
+        for i in range(n):
+            unfeaturized_samples.append(self.draw_unif_samp())
+        featurized_samples = []
+        for i in range(n):
+            featurized_samples.append(self.make_zero_one_vect(unfeaturized_samples[i]))
+        
+        if n == 1:
+            unfeaturized_samples = unfeaturized_samples[0] 
+            featurized_samples = featurized_samples[0]
+        return unfeaturized_samples, featurized_samples
+
     # draws a uniform sample which is a valid tree
     def draw_unif_samp(self):
         valid_samp = False
@@ -103,6 +116,14 @@ class Unif_Sampler():
         #for i in range(len(sample)):
         #    print self.index_names[i], sample[i], zero_one_vect[i]
 
+    # takes a list of k hparam assignments, sampled from draw_unif_samp()
+    # returns list of k hparam assignments in the format requried by hyperopt
+    def make_full_hparam_list_set(self, list_of_points):
+        k_points_to_return = []
+        for i in range(len(list_of_points)):
+            k_points_to_return.append(self.make_full_hparam_list(list_of_points[i]))
+        return k_points_to_return
+            
 
     # takes a sample and returns a valid hparam set to return
     def make_full_hparam_list(self, sample):

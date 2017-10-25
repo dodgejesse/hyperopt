@@ -20,12 +20,11 @@ import random
 import copy
 from discretize_space import Discretizer
 from discretized_distance import Compute_Dist
-import dpp_sample_compiled_matlab
+#import dpp_sample_compiled_matlab
 import time
 import sys
 import scipy.spatial
 import dpp_mcmc_sampler
-
 
 def get_num_quantiles(node):
     if node.name == 'literal':
@@ -169,6 +168,7 @@ def output_format(vals, new_id, domain, trials):
 
 
 def sample_discrete_dpp(trials, domain, seed):
+    #import pdb; pdb.set_trace() 
     discretizer = Discretizer(trials.discretize_num)
     d_space = discretizer.discretize_space(domain)
 
@@ -194,23 +194,40 @@ def sample_discrete_dpp(trials, domain, seed):
 
 # call the mcmc algorithm        
 def sample_continuous_dpp(trials, domain, seed):
-    
-    
-    return stuff
 
-def suggest(new_ids, domain, trials, seed, *args, **kwargs):
+    if trials.dpp_dist == 'rbf':
+        import rbf_kernel
+        dist_fn = rbf_kernel.RBF_Kernel()
+
+    # for some reason this has to be imported here...?
+    from unif_hparam_sample import Unif_Sampler
+    unif_sampler = Unif_Sampler(domain.expr)
+
+    k = trials.max_evals
+    d = len(unif_sampler(1)[1])
+    num_iters = int(max(1000, np.power(k,2) * d))
+    
+    unfeat_B_Y, B_Y, L_Y, time = dpp_mcmc_sampler.sample_k_disc_and_cont(unif_sampler, dist_fn, k, max_iter=num_iters)
+
+    hparam_assignments = unif_sampler.make_full_hparam_list_set(unfeat_B_Y)
 
 
     #DEBUG
-    from unif_hparam_sample import Unif_Sampler
-    unif_sampler = Unif_Sampler(domain.expr)
-    for i in range(10):
-        unif_samp = unif_sampler.draw_unif_samp()
-        print unif_sampler.make_zero_one_vect(unif_samp)
-        print unif_sampler.make_full_hparam_list(unif_samp)
-        print('')
+    #num_samples_to_draw = 20
+    #for i in range(num_samples_to_draw):
+    #    unif_samp = unif_sampler.draw_unif_samp()
+    #    zero_one_vect = unif_sampler.make_zero_one_vect(unif_samp)
+    #    print zero_one_vect
+        #print unif_sampler.make_full_hparam_list(unif_samp)
+    #print('')
 
-    import pdb; pdb.set_trace()
+    
+
+    return hparam_assignments
+    
+
+def suggest(new_ids, domain, trials, seed, *args, **kwargs):
+    
 
     #if first time through, sample set of hparams
     if new_ids[0] == 0:

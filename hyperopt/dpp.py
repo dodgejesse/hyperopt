@@ -205,7 +205,7 @@ def sample_continuous_dpp(trials, domain, seed):
 
     k = trials.max_evals
     d = len(unif_sampler(1)[1])
-    num_iters = int(max(1000, np.power(k,2) * d))
+    num_iters = int(max(1000, np.power(k,3) * d))
     
     unfeat_B_Y, B_Y, L_Y, time = dpp_mcmc_sampler.sample_k_disc_and_cont(unif_sampler, dist_fn, k, max_iter=num_iters)
 

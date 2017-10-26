@@ -119,6 +119,10 @@ def scale_and_shift(mi, ma, a, b, X):
 
 
 def generate_L_from_vectors(vectors, distance):
+    #import pdb; pdb.set_trace()
+    if distance == 'rbf':
+        import sklearn.metrics
+        return sklearn.metrics.pairwise.rbf_kernel(vectors, vectors)
     dist_map = {"cos":"cosine", "l2":"euclidean", "ham":"hamming"}
     debug_dists = False
     if debug_dists:

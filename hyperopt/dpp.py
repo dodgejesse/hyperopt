@@ -198,13 +198,19 @@ def sample_discrete_dpp(trials, domain, seed):
 
 # call the mcmc algorithm        
 def sample_continuous_dpp(trials, domain, seed):
-
+    import pdb; pdb.set_trace()
     if trials.dpp_dist == 'rbf':
         import rbf_kernel
         dist_fn = rbf_kernel.RBF_Kernel()
     elif trials.dpp_dist == 'rbf_clip':
         import rbf_kernel
         dist_fn = rbf_kernel.RBF_Clipped_Kernel('k')
+    elif trials.dpp_dist == 'rbf_narrow':
+        import rbf_kernel
+        #DEBUGGING
+        # this bandwidth is just for ICLR
+        bandwidth=8
+        dist_fn = rbf_kernel.RBF_Kernel(bandwidth)
 
     # for some reason this has to be imported here...?
     from unif_hparam_sample import Unif_Sampler

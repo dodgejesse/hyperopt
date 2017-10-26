@@ -198,7 +198,7 @@ def sample_discrete_dpp(trials, domain, seed):
 
 # call the mcmc algorithm        
 def sample_continuous_dpp(trials, domain, seed):
-    import pdb; pdb.set_trace()
+    #import pdb; pdb.set_trace()
     if trials.dpp_dist == 'rbf':
         import rbf_kernel
         dist_fn = rbf_kernel.RBF_Kernel()

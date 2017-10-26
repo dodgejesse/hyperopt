@@ -211,6 +211,12 @@ def sample_continuous_dpp(trials, domain, seed):
         # this bandwidth is just for ICLR
         bandwidth=8
         dist_fn = rbf_kernel.RBF_Kernel(bandwidth)
+    elif trials.dpp_dist == 'rbf_vnarrow':
+        import rbf_kernel
+        #DEBUGGING
+        # this bandwidth is just for ICLR
+        bandwidth=20
+        dist_fn = rbf_kernel.RBF_Kernel(bandwidth)
 
     # for some reason this has to be imported here...?
     from unif_hparam_sample import Unif_Sampler

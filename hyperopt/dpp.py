@@ -123,6 +123,9 @@ def generate_L_from_vectors(vectors, distance):
     if distance == 'rbf':
         import sklearn.metrics
         return sklearn.metrics.pairwise.rbf_kernel(vectors, vectors)
+    elif distance == 'rbf_narrow':
+        import sklearn.metrics
+        return sklearn.metrics.pairwise.rbf_kernel(vectors, vectors, gamma=8)
     dist_map = {"cos":"cosine", "l2":"euclidean", "ham":"hamming"}
     debug_dists = False
     if debug_dists:

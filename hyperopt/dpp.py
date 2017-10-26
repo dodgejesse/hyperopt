@@ -198,6 +198,9 @@ def sample_continuous_dpp(trials, domain, seed):
     if trials.dpp_dist == 'rbf':
         import rbf_kernel
         dist_fn = rbf_kernel.RBF_Kernel()
+    elif trials.dpp_dist == 'rbf_clip':
+        import rbf_kernel
+        dist_fn = rbf_kernel.RBF_Clipped_Kernel('k')
 
     # for some reason this has to be imported here...?
     from unif_hparam_sample import Unif_Sampler

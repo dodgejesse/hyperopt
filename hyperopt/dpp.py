@@ -178,6 +178,9 @@ def sample_discrete_dpp(trials, domain, seed):
     #import pdb; pdb.set_trace() 
     discretizer = Discretizer(trials.discretize_num)
     d_space = discretizer.discretize_space(domain)
+    if len(d_space) == 1:
+        return d_space
+        
 
     make_vect = Make_Vector(domain.expr)
 

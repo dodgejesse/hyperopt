@@ -202,12 +202,19 @@ def sample_discrete_dpp(trials, domain, seed):
 
     return [d_space[int(index)] for index in dpp_sampled_indices]
 
-# call the mcmc algorithm        
+# call the mcmc algorithm
+# THIS METHOD HAS SOME WEIRD BS ABOUT IMPORTS. WTF.
 def sample_continuous_dpp(trials, domain, seed):
-    #import pdb; pdb.set_trace()
+    
+    # for some reason this has to be imported here...?
+    from unif_hparam_sample import Unif_Sampler
+    unif_sampler = Unif_Sampler(domain.expr)
+
+    
+
     if trials.dpp_dist == 'rbf':
         import rbf_kernel
-        dist_fn = rbf_kernel.RBF_Kernel()
+        dist_fn = rbf_kernel.RBF_Kernel(1.0/len(unif_sampler.index_names))
     elif trials.dpp_dist == 'rbf_clip':
         import rbf_kernel
         dist_fn = rbf_kernel.RBF_Clipped_Kernel('k')
@@ -224,17 +231,13 @@ def sample_continuous_dpp(trials, domain, seed):
         bandwidth=20
         dist_fn = rbf_kernel.RBF_Kernel(bandwidth)
 
-    # for some reason this has to be imported here...?
-    from unif_hparam_sample import Unif_Sampler
-    unif_sampler = Unif_Sampler(domain.expr)
 
     k = trials.max_evals
     d = len(unif_sampler(1)[1])
     num_iters = int(max(1000, np.power(k,3) * d))
-    
     unfeat_B_Y, B_Y, L_Y, time = dpp_mcmc_sampler.sample_k_disc_and_cont(unif_sampler, dist_fn, k, max_iter=num_iters)
-
     hparam_assignments = unif_sampler.make_full_hparam_list_set(unfeat_B_Y)
+
 
 
     #DEBUG
@@ -256,12 +259,14 @@ def suggest(new_ids, domain, trials, seed, *args, **kwargs):
 
     #if first time through, sample set of hparams
     if new_ids[0] == 0:
+        start_time = time.time()
         if trials.discretize_space:
             hparams_to_try = sample_discrete_dpp(trials, domain, seed)
         else:
             hparams_to_try = sample_continuous_dpp(trials, domain, seed)
 
-        
+        print("it took {} seconds to draw a sample of size {} from a DPP using MCMC algorithm.".format(
+            time.time() - start_time, len(hparams_to_try)))
         print("The hyperparameter settings that will be evaluated " + 
               "(evaluation order will be uniformly sampled):")
         for thing in hparams_to_try:
@@ -273,7 +278,6 @@ def suggest(new_ids, domain, trials, seed, *args, **kwargs):
         for i in range(len(hparams_to_try)):
             trials.hparams_to_try.append(output_format(hparams_to_try[i], i, domain, trials))
 
-        
     return trials.hparams_to_try[new_ids[0]]
 
 

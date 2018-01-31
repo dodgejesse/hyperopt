@@ -670,8 +670,15 @@ def toposort(expr):
     for node in dfs(expr):
         G.add_edges_from([(n_in, node) for n_in in node.inputs()])
     order = nx.topological_sort(G)
+    # for newer versions of networkx, the above call is returning a generator, not a list
+    #ordered = []
+    #for node in order:
+    #    ordered.append(node)
+    #assert ordered[-1] == expr
+    #return ordered
     assert order[-1] == expr
     return order
+    
 
 
 def clone(expr, memo=None):
